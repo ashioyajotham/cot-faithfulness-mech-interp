@@ -341,18 +341,3 @@ If you use this work in your research, please cite:
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🔗 Quick Links
-
-- 🎯 **[Live Demo](https://colab.research.google.com/github/ashioyajotham/cot-faithfulness-mech-interp/blob/main/demo.ipynb)** - Try it in Colab
-- 📊 **[Results Dashboard](https://wandb.ai/ashioya/cot-faithfulness)** - View experiment results
-- 📝 **[Research Paper](paper/main.pdf)** - Read the full paper
-- 🎥 **[Presentation](https://youtu.be/demo_link)** - Watch the results presentation
-
----
-
-## **Happy Investigating! 🔬✨**
-
-### *Built with ❤️ for the mechanistic interpretability community*
