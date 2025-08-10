@@ -1,0 +1,81 @@
+# Experiment configuration
+experiment:
+  name: "cot_faithfulness_analysis"
+  description: "Mechanistic analysis of chain-of-thought faithfulness"
+  
+# Phase configuration
+phases:
+  circuit_discovery:
+    duration_hours: 4
+    num_examples: 100
+    task_types: ["arithmetic", "logic", "knowledge"]
+    
+  faithfulness_detection:
+    duration_hours: 4
+    training_examples: 500
+    validation_examples: 100
+    test_examples: 100
+    
+  interventions:
+    duration_hours: 3
+    num_interventions: 50
+    strength_levels: 7
+    
+  evaluation:
+    duration_hours: 1
+    cross_task_examples: 200
+    robustness_examples: 100
+
+# Task configuration
+tasks:
+  arithmetic:
+    num_examples: 200
+    difficulty_levels: ["easy", "medium", "hard"]
+    operation_types: ["addition", "subtraction", "multiplication"]
+    
+  logic:
+    num_examples: 150
+    reasoning_types: ["transitive", "conditional", "disjunctive"]
+    complexity_levels: [2, 3, 4]  # Number of reasoning steps
+    
+  knowledge:
+    num_examples: 100
+    domains: ["literature", "history", "science", "geography"]
+    confidence_levels: ["high", "medium", "low"]
+
+# Faithfulness patterns
+patterns:
+  faithful:
+    description: "Reasoning matches internal computation"
+    expected_frequency: 0.6
+    
+  shortcut:
+    description: "Direct input-output bypass"
+    expected_frequency: 0.2
+    
+  backward_chaining:
+    description: "Working backwards from conclusion"
+    expected_frequency: 0.15
+    
+  confabulation:
+    description: "Plausible but incorrect steps"
+    expected_frequency: 0.05
+
+# Evaluation metrics
+metrics:
+  faithfulness_detection:
+    - accuracy
+    - precision
+    - recall
+    - f1_score
+    - auc_roc
+    
+  intervention_success:
+    - faithfulness_change
+    - accuracy_preservation
+    - consistency_score
+    
+  circuit_quality:
+    - interpretability_score
+    - completeness_ratio
+    - robustness_metric

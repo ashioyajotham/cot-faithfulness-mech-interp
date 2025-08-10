@@ -1,0 +1,45 @@
+# Path configuration
+paths:
+  # Data paths
+  data_dir: "./data"
+  raw_data_dir: "./data/raw"
+  processed_data_dir: "./data/processed"
+  
+  # Model paths
+  models_dir: "./checkpoints"
+  gpt2_path: "./checkpoints/gpt2_small"
+  sae_path: "./checkpoints/saes"
+  
+  # Results paths
+  results_dir: "./results"
+  circuits_dir: "./results/circuits"
+  figures_dir: "./results/figures"
+  metrics_dir: "./results/metrics"
+  models_output_dir: "./results/models"
+  reports_dir: "./results/reports"
+  
+  # Cache paths
+  cache_dir: "./cache"
+  activations_cache: "./cache/activations"
+  features_cache: "./cache/features"
+  
+  # Log paths
+  logs_dir: "./logs"
+  experiment_logs: "./logs/experiments"
+  error_logs: "./logs/errors"
+
+# File patterns
+file_patterns:
+  arithmetic_tasks: "arithmetic_tasks.jsonl"
+  logic_tasks: "logic_tasks.jsonl"
+  knowledge_tasks: "knowledge_tasks.jsonl"
+  faithful_examples: "faithful_examples.jsonl"
+  unfaithful_examples: "unfaithful_examples.jsonl"
+  validation_set: "validation_set.jsonl"
+  
+# Output formats
+output_formats:
+  circuits: "json"
+  figures: ["png", "pdf", "svg"]
+  metrics: ["json", "csv"]
+  reports: ["html", "pdf"]

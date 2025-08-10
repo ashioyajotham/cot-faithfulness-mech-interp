@@ -1,0 +1,87 @@
+Based on your codebase, here's how to get started running your mechanistic interpretability project:
+
+## **Prerequisites Setup**
+
+1. **Install dependencies**:
+```powershell
+cd c:\Users\HomePC\mech_cot\cot-faithfulness-mech-interp
+pip install -r requirements.txt
+```
+
+2. **Configure Python environment** (if needed):
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+## **Quick Start Options**
+
+### **Option 1: Run the Experiment Notebooks** (Recommended first step)
+```powershell
+jupyter notebook experiments/phase1_circuit_discovery.ipynb
+```
+This notebook will:
+- Load GPT-2 Small 
+- Generate sample reasoning data
+- Build attribution graphs
+- Discover reasoning circuits
+- Create interactive visualizations
+
+### **Option 2: Generate Data First**
+```powershell
+python -c "
+from src.data.data_generation import ChainOfThoughtDataGenerator
+generator = ChainOfThoughtDataGenerator()
+dataset = generator.generate_dataset(num_examples=100)
+print(f'Generated {len(dataset)} examples')
+"
+```
+
+### **Option 3: Test Core Components**
+```powershell
+# Test model loading
+python -c "
+from src.models.gpt2_wrapper import GPT2Wrapper
+model = GPT2Wrapper()
+print('Model loaded successfully')
+"
+
+# Test attribution graphs
+python -c "
+from src.analysis.attribution_graphs import AttributionGraphBuilder
+builder = AttributionGraphBuilder()
+print('Attribution graph builder ready')
+"
+```
+
+## **Recommended Workflow**
+
+1. **Start with Phase 1 notebook** - This gives you the full experience and validates everything works
+2. **Check the visualizations** - Make sure plots render correctly
+3. **Run Phase 2 notebook** - Train the faithfulness detector
+4. **Experiment with interventions** - Use the intervention system
+5. **Generate your own data** - Create custom reasoning examples
+
+## **Key Commands to Remember**
+
+- **Launch Jupyter**: `jupyter notebook` or `jupyter lab`
+- **Run specific experiments**: Open the `.ipynb` files in `experiments/`
+- **Check configuration**: Look at files in `config/` directory
+- **View results**: Plots will appear in notebook outputs and can be saved
+
+## **What to Expect**
+
+- **Phase 1**: Circuit discovery will take ~5-10 minutes for small examples
+- **Phase 2**: Training faithfulness detector will take ~10-20 minutes
+- **Visualizations**: Interactive plots should render in your browser
+- **Data generation**: Very fast (~seconds for 100 examples)
+
+## **If You Hit Issues**
+
+1. **Import errors**: Make sure you're in the project root directory
+2. **GPU issues**: The code will fall back to CPU automatically
+3. **Memory issues**: Reduce batch sizes in the config files
+4. **Visualization issues**: Try `pip install plotly jupyter` if plots don't render
+
+Start with the Phase 1 notebook - it's designed to give you the full end-to-end experience and validate that everything is working correctly!
