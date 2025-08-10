@@ -1,7 +1,7 @@
 # Model configuration
 model:
   name: "gpt2"  # GPT-2 Small (124M parameters)
-  device: "cuda"  # or "cpu"
+  device: "cpu"
   max_length: 512
   cache_activations: true
   
