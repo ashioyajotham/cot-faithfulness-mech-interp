@@ -1,15 +1,19 @@
 # 🔍 Mechanistic Analysis of Chain-of-Thought Faithfulness
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
+[![Python 3.13 Compatible](https://img.shields.io/badge/python-3.13%20compatible-brightgreen.svg)](https://github.com/google/sentencepiece/issues/1104)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![MATS](https://img.shields.io/badge/MATS-2024-green.svg)](https://www.matsprogram.org/)
+[![MATS](https://img.shields.io/badge/MATS-2025-green.svg)](https://www.matsprogram.org/)
 
 > **A comprehensive implementation for investigating the mechanistic basis of faithfulness in chain-of-thought reasoning using GPT-2 and TransformerLens.**
 
-**Author**: Ashioya Jotham Victor
-**Inspiration**: Anthropic's Attribution Graphs Methodology
+**Author**: Ashioya Jotham Victor  
+
+**Inspiration**: Anthropic's Attribution Graphs Methodology  
+
 **Model**: GPT-2 Small (124M parameters)  
+
 **Framework**: TransformerLens, PyTorch, NetworkX
 
 ---
@@ -130,7 +134,7 @@ Model: Blade Runner was inspired by a science fiction novel...
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.8+ (including Python 3.13)
 - CUDA-compatible GPU (RTX 3080+ recommended)
 - 16GB+ RAM
 - 50GB free disk space
@@ -147,6 +151,20 @@ conda activate cot-faithfulness
 ```bash
 pip install -r requirements.txt
 ```
+
+### ⚠️ Python 3.13 Compatibility Note
+
+If you're using **Python 3.13 on Windows**, you may encounter issues installing `sentencepiece` (required by TransformerLens). This is a known upstream issue. **Solution:**
+
+```bash
+# Install pre-built wheel for Python 3.13 on Windows
+pip install https://github.com/NeoAnthropocene/wheels/raw/f76a39a2c1158b9c8ffcfdc7c0f914f5d2835256/sentencepiece-0.2.1-cp313-cp313-win_amd64.whl
+
+# Then install transformer-lens
+pip install transformer-lens
+```
+
+**Background:** The official `sentencepiece` package doesn't yet provide pre-built wheels for Python 3.13, causing compilation failures on Windows. This community-built wheel resolves the issue. See [google/sentencepiece#1104](https://github.com/google/sentencepiece/issues/1104) for more details.
 
 ### Option 3: Development Install
 

@@ -1,10 +1,19 @@
+# Chain-of-Thought Faithfulness Analysis Environment
+# 
+# Python 3.13 Compatibility Note:
+# If using Python 3.13 on Windows and encountering sentencepiece installation issues,
+# install the pre-built wheel first:
+# pip install https://github.com/NeoAnthropocene/wheels/raw/f76a39a2c1158b9c8ffcfdc7c0f914f5d2835256/sentencepiece-0.2.1-cp313-cp313-win_amd64.whl
+# 
+# See: https://github.com/google/sentencepiece/issues/1104
+
 name: cot-faithfulness
 channels:
   - pytorch
   - conda-forge
   - defaults
 dependencies:
-  - python=3.9
+  - python=3.9  # Change to 3.13 if desired, but see compatibility note above
   - pytorch>=2.0.0
   - pytorch-cuda=11.8
   - cudatoolkit
