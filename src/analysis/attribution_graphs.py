@@ -199,7 +199,7 @@ class AttributionGraphBuilder:
             "num_layers": self.model.num_layers,
             "build_params": {
                 "top_k_features": self.top_k_features,
-                "prune_threshold": self.prune_threshold,
+                "prune_threshold": self.pruning_threshold,
                 "max_graph_depth": self.max_graph_depth
             }
         }
@@ -208,7 +208,7 @@ class AttributionGraphBuilder:
             nodes=nodes,
             edges=edges,
             metadata=metadata,
-            pruning_threshold=self.prune_threshold
+            pruning_threshold=self.pruning_threshold
         )
     
     def _compute_activations_and_gradients(
@@ -485,6 +485,86 @@ class AttributionGraphBuilder:
             metadata=graph_data['metadata'],
             pruning_threshold=graph_data['pruning_threshold']
         )
+    
+    def build_graph_from_cache(
+        self,
+        cache,
+        reasoning_step: str = "reasoning",
+        target_layers: Optional[List[int]] = None,
+        target_position: Optional[int] = None
+    ) -> AttributionGraph:
+        """
+        Build attribution graph from existing activation cache.
+        
+        Args:
+            cache: Activation cache from model forward pass
+            reasoning_step: Description of the reasoning step
+            target_layers: Specific layers to analyze (default: all layers)
+            target_position: Specific token position to focus on (default: last position)
+            
+        Returns:
+            Attribution graph built from cache
+        """
+        if target_layers is None:
+            target_layers = list(range(self.model.model.cfg.n_layers))
+        
+        if target_position is None:
+            # Use the last position as target
+            target_position = -1
+        
+        # Extract activations from cache for target layers
+        nodes = []
+        edges = []
+        
+        # Create nodes from MLP activations
+        for layer_idx in target_layers:
+            mlp_key = f'blocks.{layer_idx}.mlp.hook_post'
+            if mlp_key in cache.activations:
+                # Shape: [batch=1, seq_len, d_mlp]
+                activations = cache.activations[mlp_key][0]  # Remove batch dim
+                
+                if target_position == -1:
+                    target_pos = activations.shape[0] - 1  # Last position
+                else:
+                    target_pos = min(target_position, activations.shape[0] - 1)
+                
+                # Get activation at target position
+                activation_vector = activations[target_pos]  # Shape: [d_mlp]
+                activation_magnitude = torch.norm(activation_vector).item()
+                
+                # Create node
+                node = AttributionNode(
+                    layer_idx=layer_idx,
+                    position=target_pos,
+                    component_type="mlp",
+                    activation_strength=activation_magnitude
+                )
+                nodes.append(node)
+        
+        # Create simple edges between consecutive layers
+        for i in range(len(nodes) - 1):
+            source_node = nodes[i]
+            target_node = nodes[i + 1]
+            
+            # Simple attribution strength based on activation difference
+            attribution_strength = abs(target_node.activation_strength - source_node.activation_strength)
+            
+            edge = AttributionEdge(
+                source=source_node,
+                target=target_node,
+                attribution_strength=attribution_strength,
+                attribution_type="layer_transfer"
+            )
+            edges.append(edge)
+        
+        # Create attribution graph
+        attribution_graph = AttributionGraph(
+            nodes=nodes,
+            edges=edges,
+            reasoning_step=reasoning_step
+        )
+        
+        return attribution_graph
 
 class FaithfulnessAnalyzer:
     """
