@@ -14,9 +14,9 @@ from typing import Dict, List, Optional, Tuple, Any
 import pandas as pd
 from pathlib import Path
 
-from ..analysis.attribution_graphs import AttributionGraph, AttributionNode, AttributionEdge
-from ..analysis.faithfulness_detector import FaithfulnessDetector, DetectionFeatures
-from ..interventions.targeted_interventions import InterventionResult
+from analysis.attribution_graphs import AttributionGraph, AttributionNode, AttributionEdge
+from analysis.faithfulness_detector import FaithfulnessDetector, DetectionFeatures
+from interventions.targeted_interventions import InterventionResult
 
 class AttributionGraphVisualizer:
     """
@@ -27,8 +27,16 @@ class AttributionGraphVisualizer:
         self.figsize = figsize
         self.color_palette = sns.color_palette("husl", 8)
         
-        # Set style
-        plt.style.use('seaborn-v0_8')
+        # Set style - with fallback for newer seaborn versions
+        try:
+            plt.style.use('seaborn-v0_8')
+        except OSError:
+            # Fallback for newer matplotlib/seaborn versions
+            plt.style.use('seaborn')
+        except:
+            # Final fallback
+            plt.style.use('default')
+        
         sns.set_palette("husl")
     
     def plot_attribution_graph(

@@ -10,8 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import json
 
-from ..models.gpt2_wrapper import GPT2Wrapper
-from ..analysis.attribution_graphs import AttributionGraphBuilder, AttributionGraph
+from models.gpt2_wrapper import GPT2Wrapper
+from analysis.attribution_graphs import AttributionGraphBuilder, AttributionGraph
 
 @dataclass
 class InterventionResult:

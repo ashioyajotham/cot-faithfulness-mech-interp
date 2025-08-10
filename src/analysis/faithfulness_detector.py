@@ -17,7 +17,7 @@ from pathlib import Path
 import json
 
 from .attribution_graphs import AttributionGraphBuilder, AttributionGraph, FaithfulnessAnalyzer
-from ..models.gpt2_wrapper import GPT2Wrapper
+from models.gpt2_wrapper import GPT2Wrapper
 
 @dataclass
 class FaithfulnessResult:
