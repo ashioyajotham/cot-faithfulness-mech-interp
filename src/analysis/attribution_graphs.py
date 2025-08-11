@@ -199,7 +199,7 @@ class AttributionGraphBuilder:
             "num_layers": self.model.num_layers,
             "build_params": {
                 "top_k_features": self.top_k_features,
-                "prune_threshold": self.pruning_threshold,
+                "prune_threshold": self.prune_threshold,
                 "max_graph_depth": self.max_graph_depth
             }
         }
@@ -208,7 +208,7 @@ class AttributionGraphBuilder:
             nodes=nodes,
             edges=edges,
             metadata=metadata,
-            pruning_threshold=self.pruning_threshold
+            pruning_threshold=self.prune_threshold
         )
     
     def _compute_activations_and_gradients(
