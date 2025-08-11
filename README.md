@@ -1,4 +1,4 @@
-# 🔍 Mechanistic Analysis of Chain-of-Thought Faithfulness
+# Mechanistic Analysis of Chain-of-Thought Faithfulness
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
 [![Python 3.13 Compatible](https://img.shields.io/badge/python-3.13%20compatible-brightgreen.svg)](https://github.com/google/sentencepiece/issues/1104)
@@ -20,7 +20,7 @@
 
 ## � Project Overview
 
-This project implements a complete pipeline for understanding how large language models perform chain-of-thought reasoning and how to detect and manipulate the faithfulness of that reasoning. Inspired by Anthropic's attribution graphs methodology, we develop tools to:
+This project implements a complete pipeline for understanding how language models perform chain-of-thought reasoning and how to detect and manipulate the faithfulness of that reasoning. Inspired by Anthropic's attribution graphs methodology, we develop tools to:
 
 1. **Discover reasoning circuits** in GPT-2 using activation analysis
 2. **Detect faithfulness** automatically using machine learning on extracted features  
@@ -57,7 +57,7 @@ cot-faithfulness-mech-interp/
 └── requirements.txt             # Dependencies
 ```
 
-## 🚀 Implementation Status: COMPLETE
+## Implementation Status
 
 ✅ **Phase 1**: Circuit Discovery - Attribution graph construction and analysis  
 ✅ **Phase 2**: Faithfulness Detection - ML-based classification system  
@@ -65,7 +65,7 @@ cot-faithfulness-mech-interp/
 ✅ **Phase 4**: Visualization - Interactive analysis dashboard  
 ✅ **Infrastructure**: Configuration, data generation, and utilities  
 
-### Key Research Questions (Addressed)
+### Key Research Questions
 
 1. **Can we mechanistically distinguish faithful from unfaithful CoT reasoning?**
 2. **What internal mechanisms cause models to switch between faithful and unfaithful patterns?**
@@ -214,13 +214,7 @@ python experiments/03_interventions/run_phase3.py
 python experiments/04_evaluation/run_phase4.py
 ```
 
-### Quick Demo (5 minutes)
-
-```bash
-python scripts/demo.py --example arithmetic
-```
-
-## 📈 Interactive Dashboard
+## Interactive Dashboard
 
 Launch the interactive exploration dashboard:
 
@@ -294,7 +288,7 @@ unfaithful_output = interventions.decrease_faithfulness(
 - 🎓 **[Tutorial](docs/tutorial.md)**: Step-by-step usage guide
 - ❓ **[Troubleshooting](docs/troubleshooting.md)**: Common issues & solutions
 
-## 📊 Project Structure
+## Project Structure
 
 ```tree
 cot-faithfulness-mech-interp/
@@ -307,7 +301,7 @@ cot-faithfulness-mech-interp/
 └── paper/                  # Research paper materials
 ```
 
-## 🤝 Contributing
+## Contributing
 
 This is a research project developed for the MATS program. While not actively seeking contributions, feedback and discussions are welcome!
 
