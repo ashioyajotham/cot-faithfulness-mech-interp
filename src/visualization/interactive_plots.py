@@ -518,6 +518,7 @@ class AttributionGraphVisualizer:
         
         return fig
     
+  
     def _attribution_to_networkx(self, graph: AttributionGraph) -> nx.DiGraph:
         """Convert attribution graph to NetworkX format."""
         
@@ -667,5 +668,9 @@ class AttributionGraphVisualizer:
             graph, detector_results, intervention_results
         )
         dashboard_fig.write_html(output_path / "faithfulness_dashboard.html")
+        
+        # Save hierarchical flow visualization
+        flow_fig = self.create_hierarchical_flow_visualization(graph)
+        flow_fig.write_html(output_path / "hierarchical_flow_visualization.html")
         
         print(f"All visualizations saved to {output_dir}")
