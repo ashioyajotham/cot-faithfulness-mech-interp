@@ -13,6 +13,43 @@ import networkx as nx
 from pathlib import Path
 import json
 import pickle
+from dataclasses import is_dataclass
+import inspect
+
+def _normalize_node_kwargs(kwargs: dict) -> dict:
+    # layer_idx -> layer
+    if "layer" not in kwargs and "layer_idx" in kwargs:
+        kwargs["layer"] = kwargs.pop("layer_idx")
+    # pos -> position
+    if "position" not in kwargs and "pos" in kwargs:
+        kwargs["position"] = kwargs.pop("pos")
+    # component_type <-> feature_type
+    if "feature_type" not in kwargs and "component_type" in kwargs:
+        kwargs["feature_type"] = kwargs["component_type"]
+    if "component_type" not in kwargs and "feature_type" in kwargs:
+        kwargs["component_type"] = kwargs["feature_type"]
+    # activation_strength fallbacks
+    if "activation_strength" not in kwargs:
+        for k in ("activation_value", "score", "importance", "weight"):
+            if k in kwargs:
+                kwargs["activation_strength"] = kwargs[k]
+                break
+    # Drop unknown parameters not in AttributionNode signature
+    try:
+        from .attribution_graphs import AttributionNode  # or local if defined here
+    except Exception:
+        pass
+    try:
+        sig = inspect.signature(AttributionNode)
+        valid = set(sig.parameters.keys())
+        kwargs = {k: v for k, v in kwargs.items() if k in valid}
+    except Exception:
+        pass
+    return kwargs
+
+def _make_node(**kwargs):
+    from .attribution_graphs import AttributionNode  # adjust if class is in this module
+    return AttributionNode(**_normalize_node_kwargs(kwargs))
 
 @dataclass
 class AttributionNode:
@@ -208,7 +245,7 @@ class AttributionGraphBuilder:
             nodes=nodes,
             edges=edges,
             metadata=metadata,
-            pruning_threshold=self.prune_threshold
+            pruning_threshold=self.pruning_threshold
         )
     
     def _compute_activations_and_gradients(
@@ -533,12 +570,7 @@ class AttributionGraphBuilder:
                 activation_magnitude = torch.norm(activation_vector).item()
                 
                 # Create node
-                node = AttributionNode(
-                    layer_idx=layer_idx,
-                    position=target_pos,
-                    component_type="mlp",
-                    activation_strength=activation_magnitude
-                )
+                node = _make_node(layer_idx=layer, position=pos, component_type=ctype, activation_strength=strength, ...)
                 nodes.append(node)
         
         # Create simple edges between consecutive layers

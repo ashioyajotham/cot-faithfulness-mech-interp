@@ -2,16 +2,14 @@
 Interactive visualization for attribution graphs and faithfulness analysis.
 """
 
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
-import plotly.express as px
 from plotly.subplots import make_subplots
 import networkx as nx
-from typing import Dict, List, Optional, Tuple, Any
-import pandas as pd
+import torch
+from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path
 
 from analysis.attribution_graphs import AttributionGraph, AttributionNode, AttributionEdge
@@ -518,35 +516,101 @@ class AttributionGraphVisualizer:
         
         return fig
     
-  
-    def _attribution_to_networkx(self, graph: AttributionGraph) -> nx.DiGraph:
-        """Convert attribution graph to NetworkX format."""
+    def _get_node_positions(self, graph: AttributionGraph, layout: str = "spring") -> Dict:
+        """Get node positions for layout."""
+        import networkx as nx
         
-        nx_graph = nx.DiGraph()
+        # Create NetworkX graph
+        G = nx.DiGraph()
         
-        # Add nodes
-        for i, node in enumerate(graph.nodes):
-            nx_graph.add_node(
-                i,
-                layer=node.layer_idx,
-                position=node.position,
-                activation=node.activation_strength,
-                component=node.component_type
-            )
+        # Handle both dict and list formats for graph.nodes
+        if isinstance(graph.nodes, dict):
+            # Your format: {node_id: node_object}
+            for node_id, node in graph.nodes.items():
+                layer = getattr(node, 'layer_idx', 0)
+                G.add_node(node_id, layer=layer)
+        else:
+            # Expected format: [node_object, ...]
+            for i, node in enumerate(graph.nodes):
+                layer = getattr(node, 'layer_idx', 0)
+                G.add_node(i, layer=layer)
         
         # Add edges
         for edge in graph.edges:
-            source_idx = next(i for i, n in enumerate(graph.nodes) if n == edge.source)
-            target_idx = next(i for i, n in enumerate(graph.nodes) if n == edge.target)
+            source = getattr(edge, 'source', None)
+            target = getattr(edge, 'target', None)
+            weight = abs(getattr(edge, 'weight', 0))
             
-            nx_graph.add_edge(
-                source_idx,
-                target_idx,
-                weight=edge.attribution_strength,
-                attribution_type=edge.attribution_type
-            )
+            if source in G.nodes and target in G.nodes:
+                G.add_edge(source, target, weight=weight)
         
-        return nx_graph
+        # Generate layout
+        if layout == "spring":
+            try:
+                pos = nx.spring_layout(G, k=3, iterations=50)
+            except:
+                pos = nx.random_layout(G)
+        elif layout == "hierarchical":
+            try:
+                pos = nx.nx_agraph.graphviz_layout(G, prog='dot')
+            except:
+                pos = nx.spring_layout(G, k=3, iterations=50)
+        else:
+            pos = nx.random_layout(G)
+        
+        return pos
+    
+    def _attribution_to_networkx(self, graph) -> nx.DiGraph:
+        """Convert attribution graph to NetworkX with dict/list + ID/object edge support."""
+        G = nx.DiGraph()
+
+        # Normalize nodes
+        if isinstance(graph.nodes, dict):
+            node_ids = list(graph.nodes.keys())
+            node_objs = list(graph.nodes.values())
+        else:
+            node_ids = list(range(len(graph.nodes)))
+            node_objs = list(graph.nodes)
+
+        id_to_idx = {node_id: i for i, node_id in enumerate(node_ids)}
+        obj_to_idx = {id(obj): i for i, obj in enumerate(node_objs) if not isinstance(obj, (str, int))}
+
+        # Add nodes
+        for i, obj in enumerate(node_objs):
+            layer = getattr(obj, "layer_idx", getattr(obj, "layer", 0))
+            position = getattr(obj, "position", getattr(obj, "pos", 0))
+            component = getattr(obj, "component_type", getattr(obj, "feature_type", "unknown"))
+            activation = abs(getattr(obj, "activation_strength", getattr(obj, "weight", 0)))
+            G.add_node(
+                i,
+                original_id=node_ids[i],
+                layer=layer,
+                position=position,
+                component=component,
+                activation=activation,
+            )
+
+        # Add edges
+        for e in getattr(graph, "edges", []):
+            src = getattr(e, "source", None)
+            tgt = getattr(e, "target", None)
+
+            s_idx = id_to_idx.get(src)
+            t_idx = id_to_idx.get(tgt)
+
+            if s_idx is None and src is not None:
+                s_idx = obj_to_idx.get(id(src))
+            if t_idx is None and tgt is not None:
+                t_idx = obj_to_idx.get(id(tgt))
+
+            if s_idx is None or t_idx is None:
+                continue
+
+            weight = abs(getattr(e, "attribution_strength", getattr(e, "weight", 0)))
+            attr_type = getattr(e, "attribution_type", "unknown")
+            G.add_edge(s_idx, t_idx, weight=weight, attribution_type=attr_type)
+
+        return G
     
     def _prepare_node_data(
         self, 
@@ -562,24 +626,32 @@ class AttributionGraphVisualizer:
         node_color = []
         node_size = []
         
-        for i, node in enumerate(graph.nodes):
+        # Handle both dict and list formats consistently
+        if isinstance(graph.nodes, dict):
+            nodes = list(graph.nodes.values())
+        else:
+            nodes = graph.nodes
+        
+        for i, node in enumerate(nodes):
             x, y = pos[i]
             node_x.append(x)
             node_y.append(y)
             
-            # Create hover text
-            text = f"Layer {node.layer_idx}<br>"
-            text += f"Position {node.position}<br>"
-            text += f"Component: {node.component_type}<br>"
-            text += f"Activation: {node.activation_strength:.3f}"
+            # Create hover text with safe attribute access
+            text = f"Layer {getattr(node, 'layer_idx', 'Unknown')}<br>"
+            text += f"Position {getattr(node, 'position', 'Unknown')}<br>"
+            text += f"Component: {getattr(node, 'component_type', 'Unknown')}<br>"
+            text += f"Activation: {getattr(node, 'activation_strength', 0):.3f}"
             node_text.append(text)
             
             # Color based on component type
             color_map = {'attention': 'red', 'mlp': 'blue', 'embedding': 'green'}
-            node_color.append(color_map.get(node.component_type, 'gray'))
+            component_type = getattr(node, 'component_type', 'unknown')
+            node_color.append(color_map.get(component_type, 'gray'))
             
             # Size based on activation strength
-            size = max(10, min(50, abs(node.activation_strength) * 30))
+            activation = abs(getattr(node, 'activation_strength', 0))
+            size = max(10, min(50, activation * 30))
             node_size.append(size)
         
         return go.Scatter(
@@ -595,32 +667,41 @@ class AttributionGraphVisualizer:
             ),
             name="Nodes"
         )
-    
+
     def _prepare_edge_data(
-        self, 
-        graph: AttributionGraph, 
-        pos: Dict, 
+        self,
+        graph: AttributionGraph,
+        pos: Dict,
         highlight_critical: bool
     ) -> List[go.Scatter]:
         """Prepare edge data for plotting."""
-        
         edge_traces = []
-        
+
+        # Build a robust mapping from node identifiers/objects to indices
+        if isinstance(graph.nodes, dict):
+            node_keys = list(graph.nodes.keys())
+            id_to_idx = {k: i for i, k in enumerate(node_keys)}
+        else:
+            id_to_idx = {node: i for i, node in enumerate(graph.nodes)}
+
         for edge in graph.edges:
-            # Find node indices
-            source_idx = next(i for i, n in enumerate(graph.nodes) if n == edge.source)
-            target_idx = next(i for i, n in enumerate(graph.nodes) if n == edge.target)
-            
+            src = getattr(edge, 'source', None)
+            tgt = getattr(edge, 'target', None)
+            source_idx = id_to_idx.get(src)
+            target_idx = id_to_idx.get(tgt)
+            if source_idx is None or target_idx is None:
+                continue
+
             x0, y0 = pos[source_idx]
             x1, y1 = pos[target_idx]
-            
+
             # Edge color and width based on attribution strength
-            strength = abs(edge.attribution_strength)
+            strength = abs(getattr(edge, 'attribution_strength', getattr(edge, 'weight', 0)))
             width = max(1, min(10, strength * 20))
-            
-            color = 'green' if edge.attribution_strength > 0 else 'red'
-            opacity = min(1.0, strength * 2)
-            
+            sign = getattr(edge, 'attribution_strength', 0)
+            color = 'green' if sign > 0 else 'red'
+            opacity = min(1.0, max(0.1, strength * 2))
+
             edge_trace = go.Scatter(
                 x=[x0, x1, None],
                 y=[y0, y1, None],
@@ -630,11 +711,14 @@ class AttributionGraphVisualizer:
                 hoverinfo='none',
                 showlegend=False
             )
-            
             edge_traces.append(edge_trace)
-        
+
         return edge_traces
-    
+
+    def create_hierarchical_flow_visualization(self, graph: AttributionGraph) -> go.Figure:
+        """Fallback implementation to avoid missing method errors."""
+        return self.plot_attribution_graph(graph, layout="spring")
+
     def save_all_visualizations(
         self,
         graph: AttributionGraph,
