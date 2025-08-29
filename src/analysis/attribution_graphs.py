@@ -3,6 +3,7 @@ Attribution graph construction and analysis for chain-of-thought reasoning.
 Inspired by Anthropic's attribution graphs methodology.
 """
 
+from kiwisolver import strength
 import torch
 import torch.nn as nn
 import numpy as np
@@ -62,6 +63,11 @@ class AttributionNode:
     attribution_score: float
     interpretation: Optional[str] = None
     examples: List[str] = field(default_factory=list)
+
+    # Compatibility alias if other code uses `layer_idx`
+    @property
+    def layer_idx(self) -> int:
+        return self.layer
     
 @dataclass
 class AttributionEdge:
@@ -187,14 +193,39 @@ class AttributionGraphBuilder:
         self,
         model,
         top_k_features: int = 50,
-        prune_threshold: float = 0.1,
-        max_graph_depth: int = 5
+        pruning_threshold: float = 0.0,
+        max_graph_depth: int = 3
     ):
         self.model = model
         self.top_k_features = top_k_features
-        self.prune_threshold = prune_threshold
+        self.pruning_threshold = pruning_threshold
         self.max_graph_depth = max_graph_depth
-        
+
+    # --- Compatibility helpers for node construction ---
+    def _normalize_node_kwargs(self, kwargs: dict) -> dict:
+        k = dict(kwargs)
+        if "layer" not in k and "layer_idx" in k:
+            k["layer"] = k.pop("layer_idx")
+        if "position" not in k and "pos" in k:
+            k["position"] = k.pop("pos")
+        # Unify feature/component naming
+        if "feature_type" not in k and "component_type" in k:
+            k["feature_type"] = k["component_type"]
+        if "component_type" not in k and "feature_type" in k:
+            k["component_type"] = k["feature_type"]
+        # Ensure activation_strength is present
+        if "activation_strength" not in k:
+            for alt in ("activation_value", "score", "importance", "weight"):
+                if alt in k:
+                    k["activation_strength"] = k[alt]
+                    break
+        return k
+
+    def _make_node(self, **kwargs):
+        # Import here to avoid circulars
+        from .attribution_graphs import AttributionNode
+        return AttributionNode(**self._normalize_node_kwargs(kwargs))
+
     def build_attribution_graph(
         self,
         input_ids: torch.Tensor,
@@ -235,10 +266,10 @@ class AttributionGraphBuilder:
             "target_position": target_token_idx,
             "num_layers": self.model.num_layers,
             "build_params": {
-                "top_k_features": self.top_k_features,
-                "prune_threshold": self.prune_threshold,
-                "max_graph_depth": self.max_graph_depth
-            }
+                "top_k_features": getattr(self, "top_k_features", 50),
+                "pruning_threshold": getattr(self, "pruning_threshold", 0.0),  # Fixed: consistent naming
+                "max_graph_depth": getattr(self, "max_graph_depth", 3),
+            },
         }
         
         return AttributionGraph(
@@ -384,7 +415,7 @@ class AttributionGraphBuilder:
                     # Compute edge weight (simplified)
                     weight = self._compute_edge_weight(curr_node, next_node, activations)
                     
-                    if abs(weight) >= self.prune_threshold:
+                    if abs(weight) >= self.pruning_threshold:  # Fixed: was self.prune_threshold
                         edges.append(AttributionEdge(
                             source=curr_node.node_id,
                             target=next_node.node_id,
@@ -570,7 +601,20 @@ class AttributionGraphBuilder:
                 activation_magnitude = torch.norm(activation_vector).item()
                 
                 # Create node
-                node = _make_node(layer_idx=layer, position=pos, component_type=ctype, activation_strength=strength, ...)
+                ctype = "mlp"
+                strength = activation_magnitude
+                layer = layer_idx
+                # Define a stable unique node ID
+                node_id = f"L{layer_idx}-P{target_pos}-{ctype}"
+
+                node = self._make_node(
+                    layer_idx=layer,
+                    position=target_pos,
+                    component_type=ctype,
+                    activation_strength=strength,
+                    node_id=node_id,
+                    feature_type=ctype
+                )
                 nodes.append(node)
         
         # Create simple edges between consecutive layers
