@@ -1,4 +1,4 @@
-# Mechanistic Analysis of Faithfulness in Chain-of-Thought Reasoning in Language Models
+# Mechanistic Analysis of Chain-of-Thought Faithfulness in Language Models
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
 [![Python 3.13 Compatible](https://img.shields.io/badge/python-3.13%20compatible-brightgreen.svg)](https://github.com/google/sentencepiece/issues/1104)
@@ -15,14 +15,14 @@
 
 ## Overview
 
-This work applies mechanistic interpretability techniques to reverse-engineer the computational circuits underlying chain-of-thought (CoT) reasoning in GPT-2 Small. Building on foundational work by Anthropic on circuit discovery (e.g., Wang et al.'s [IOI Circuit](https://arxiv.org/abs/2211.00593) paper), we develop a pipeline to:
+This work applies mechanistic interpretability techniques to reverse-engineer the computational circuits underlying chain-of-thought (CoT) reasoning in GPT-2 Small. Adapting Anthropic's [Attribution Graphs methodology](https://transformer-circuits.pub/2025/attribution-graphs/biology.html) (Lindsey et al., 2025)—which uses cross-layer transcoders and local replacement models to trace circuits in Claude 3.5 Haiku—we develop a direct activation analysis pipeline for GPT-2 via TransformerLens hooks to:
 
 1. Construct and analyze attribution graphs mapping information flow during reasoning
 2. Identify critical circuit components through causal interventions (activation ablation and patching)
 3. Quantify mechanistic contributions of individual attention heads and MLP features
 4. Evaluate circuit quality via intervention-based metrics (faithfulness, completeness, minimality)
 
-Our approach combines activation caching, attribution graph construction, and causal intervention methodology to identify minimal circuits sufficient for CoT reasoning across arithmetic, physics, and logical reasoning tasks.
+While Anthropic's approach uses sparse feature dictionaries (30M features) for interpretable decomposition, our implementation directly analyzes GPT-2's native computational components (attention heads, MLP layers) to identify minimal circuits sufficient for CoT reasoning across arithmetic, physics, and logical reasoning tasks. This allows systematic investigation of CoT faithfulness patterns—including motivated reasoning, hallucination, and backward chaining—through graph-based circuit analysis.
 
 ## Methodological Foundation
 
@@ -223,6 +223,7 @@ These metrics enable quantitative circuit quality assessment beyond visual inspe
 
 This work directly builds on:
 
+- **[Attribution Graphs - Anthropic (2025)](https://transformer-circuits.pub/2025/attribution-graphs/biology.html)**: Core methodology for circuit tracing in language models; introduces cross-layer transcoders (CLTs), attribution graph construction, and systematic validation protocols. Demonstrates circuit analysis on Claude 3.5 Haiku across multi-step reasoning, chain-of-thought faithfulness, and hidden goal detection
 - **[IOI Circuit - Wang et al. (2022)](https://arxiv.org/abs/2211.00593)**: Foundational circuit discovery methodology for GPT-2 small; identifies 26 attention heads across 7 classes for indirect object identification task
 - **[SAEs for Mechanistic Interpretability - Cunningham et al. (2023)](https://arxiv.org/abs/2309.08600)**: Feature-level interpretability through sparse autoencoders; demonstrates monosemanticity and causal responsibility of learned features
 - **[Anthropic Circuits Research](https://transformer-circuits.pub/)**: Comprehensive framework for reverse-engineering transformer circuits; establishes best practices for attribution analysis and intervention protocols
