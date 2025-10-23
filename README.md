@@ -1,4 +1,4 @@
-# Mechanistic Interpretability of Chain-of-Thought Reasoning in Language Models
+# Mechanistic Analysis of Faithfulness in Chain-of-Thought Reasoning in Language Models
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
 [![Python 3.13 Compatible](https://img.shields.io/badge/python-3.13%20compatible-brightgreen.svg)](https://github.com/google/sentencepiece/issues/1104)
@@ -67,7 +67,7 @@ Building on sparse autoencoder (SAE) interpretability work (Cunningham et al., 2
 
 ## Implementation Structure
 
-```
+```tree
 cot-faithfulness-mech-interp/
 ├── src/
 │   ├── models/
@@ -138,7 +138,7 @@ This captures all layer computations for subsequent analysis.
 
 Causal ablation across four reasoning examples identifies top contributors:
 
-```
+```python
 Component Importance (Mean Causal Effect on Prediction):
 - MLP(L0): 15.14  [Embedding transformation, token interaction]
 - Head(L0.0): 2.81 [Early attention, position tracking]
