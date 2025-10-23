@@ -67,34 +67,34 @@ Building on sparse autoencoder (SAE) interpretability work (Cunningham et al., 2
 
 ## Implementation Structure
 
-`
+```
 cot-faithfulness-mech-interp/
- src/
-    models/
-       gpt2_wrapper.py           # GPT-2 with activation caching
-    analysis/
-       attribution_graphs.py     # Graph construction from activations
-       faithfulness_detector.py  # Feature extraction for analysis
-    interventions/
-       targeted_interventions.py # Causal intervention framework
-    data/
-       data_generation.py        # Reasoning task generation
-    visualization/
-        interactive_plots.py      # Interactive graph/ablation plots
- experiments/
-    phase1_circuit_discovery.ipynb        # Attribution & ablation analysis
-    phase2_faithfulness_detection.ipynb   # ML classification framework
-    phase3_targeted_interventions.ipynb   # Intervention experiments
-    phase4_evaluation_analysis.ipynb      # Comparative analysis
- config/
-    model_config.yaml             # Model hyperparameters
-    experiment_config.yaml        # Analysis settings
-    paths_config.yaml             # Data/output paths
- data/                             # Datasets and cached results
- results/                          # Experimental outputs
- docs/                             # Documentation
- requirements.txt                  # Dependencies
-`
+├── src/
+│   ├── models/
+│   │   └── gpt2_wrapper.py           # GPT-2 with activation caching
+│   ├── analysis/
+│   │   ├── attribution_graphs.py     # Graph construction from activations
+│   │   └── faithfulness_detector.py  # Feature extraction for analysis
+│   ├── interventions/
+│   │   └── targeted_interventions.py # Causal intervention framework
+│   ├── data/
+│   │   └── data_generation.py        # Reasoning task generation
+│   └── visualization/
+│       └── interactive_plots.py      # Interactive graph/ablation plots
+├── experiments/
+│   ├── phase1_circuit_discovery.ipynb        # Attribution & ablation analysis
+│   ├── phase2_faithfulness_detection.ipynb   # ML classification framework
+│   ├── phase3_targeted_interventions.ipynb   # Intervention experiments
+│   └── phase4_evaluation_analysis.ipynb      # Comparative analysis
+├── config/
+│   ├── model_config.yaml             # Model hyperparameters
+│   ├── experiment_config.yaml        # Analysis settings
+│   └── paths_config.yaml             # Data/output paths
+├── data/                             # Datasets and cached results
+├── results/                          # Experimental outputs
+├── docs/                             # Documentation
+└── requirements.txt                  # Dependencies
+```
 
 ## Technical Approach
 
@@ -123,12 +123,12 @@ We use GPT-2 Small (124M parameters) as the analysis target because:
 
 Using TransformerLens's hook system:
 
-`python
+```python
 cache = model.generate_with_cache(
     prompt=reasoning_prompt,
     max_new_tokens=80
 )
-`
+```
 
 This captures all layer computations for subsequent analysis.
 
@@ -138,14 +138,14 @@ This captures all layer computations for subsequent analysis.
 
 Causal ablation across four reasoning examples identifies top contributors:
 
-`
+```
 Component Importance (Mean Causal Effect on Prediction):
 - MLP(L0): 15.14  [Embedding transformation, token interaction]
 - Head(L0.0): 2.81 [Early attention, position tracking]
 - Head(L5.1): 2.45 [Mid-layer reasoning head]
 - MLP(L4): 2.35   [Feature composition]
 - Head(L0.8): 1.07 [Early attention pattern]
-`
+```
 
 Observation: Early layers (L0-L1) show strongest causal effects, suggesting embedding-level transformations are critical for CoT routing.
 
@@ -155,9 +155,9 @@ Hub analysis reveals:
 
 - **Source hubs** (high outgoing weights): L10 MLP features (496, 373, 481)
 - **Sink hubs** (high incoming weights): L11 attention heads
-- **Critical flow**: L9 residual  L10 MLP  L11 attention  prediction
+- **Critical flow**: L9 residual → L10 MLP → L11 attention → prediction
 
-This L9L11 bottleneck represents approximately 40% of total attribution weight, indicating compressed information flow through deep layers.
+This L9→L11 bottleneck represents approximately 40% of total attribution weight, indicating compressed information flow through deep layers.
 
 ### Graph Statistics
 
@@ -177,19 +177,19 @@ This L9L11 bottleneck represents approximately 40% of total attribution weight, 
 
 ### Setup (Conda)
 
-`ash
+```bash
 conda env create -f environment.yml
 conda activate cot-faithfulness
-`
+```
 
 ### Python 3.13 Windows Compatibility
 
 Due to upstream sentencepiece packaging issues, install pre-built wheel:
 
-`ash
+```bash
 pip install https://github.com/NeoAnthropocene/wheels/raw/f76a39a2c1158b9c8ffcfdc7c0f914f5d2835256/sentencepiece-0.2.1-cp313-cp313-win_amd64.whl
 pip install transformer-lens
-`
+```
 
 See [google/sentencepiece#1104](https://github.com/google/sentencepiece/issues/1104) for details.
 
@@ -229,19 +229,17 @@ This work directly builds on:
 
 ## Citation
 
-\\\ibtex
+```bibtex
 @misc{ashioya2025cot_interpretability,
   title={Mechanistic Interpretability of Chain-of-Thought Reasoning in Language Models},
   author={Ashioya, Jotham Victor},
   year={2025},
   url={https://github.com/ashioyajotham/cot-faithfulness-mech-interp}
 }
-\\\
+```
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
 ---
-
-**Contact**: victorashioya960@gmail.com
