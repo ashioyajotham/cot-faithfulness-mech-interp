@@ -232,7 +232,7 @@ This work directly builds on:
 
 ```bibtex
 @misc{ashioya2025cot_interpretability,
-  title={Mechanistic Interpretability of Chain-of-Thought Reasoning in Language Models},
+  title={Mechanistic Analysis of Chain-of-Thought Faithfulness},
   author={Ashioya, Jotham Victor},
   year={2025},
   url={https://github.com/ashioyajotham/cot-faithfulness-mech-interp}
