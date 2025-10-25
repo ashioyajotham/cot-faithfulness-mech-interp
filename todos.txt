@@ -1,5 +1,3 @@
-Based on your codebase, here's how to get started running your mechanistic interpretability project:
-
 ## **Prerequisites Setup**
 
 1. **Install dependencies**:
@@ -83,5 +81,3 @@ print('Attribution graph builder ready')
 2. **GPU issues**: The code will fall back to CPU automatically
 3. **Memory issues**: Reduce batch sizes in the config files
 4. **Visualization issues**: Try `pip install plotly jupyter` if plots don't render
-
-Start with the Phase 1 notebook - it's designed to give you the full end-to-end experience and validate that everything is working correctly!
