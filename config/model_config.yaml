@@ -1,7 +1,7 @@
 # Model configuration
 model:
   name: "gpt2"  # GPT-2 Small (124M parameters)
-  device: "cpu"
+  device: "auto"  # Will auto-detect: cuda if available, else cpu
   max_length: 512
   cache_activations: true
   
