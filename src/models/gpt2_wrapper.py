@@ -199,13 +199,13 @@ class GPT2Wrapper:
         # Generate
         with torch.no_grad():
             if cache_activations:
-                # Generate with caching (step by step for full cache)
+                # Generate without caching for efficiency
                 generated_ids = input_ids.clone()
-                all_caches = []
                 
                 for _ in range(max_new_tokens):
-                    logits, cache = self.forward(generated_ids, cache_activations=True)
-                    all_caches.append(cache)
+                    # Check if we should cache this step (only need it for sampling, not storage)
+                    # We force cache_activations=False during generation to save memory
+                    logits, _ = self.forward(generated_ids, cache_activations=False)
                     
                     # Sample next token
                     next_token_logits = logits[0, -1, :] / temperature
@@ -230,7 +230,8 @@ class GPT2Wrapper:
                         
                     generated_ids = torch.cat([generated_ids, next_token.unsqueeze(0)], dim=1)
                 
-                final_cache = all_caches[-1] if all_caches else None
+                # Computed final cache on the full sequence
+                _, final_cache = self.forward(generated_ids, cache_activations=True)
             else:
                 # Standard generation
                 generated_ids = self.model.generate(
