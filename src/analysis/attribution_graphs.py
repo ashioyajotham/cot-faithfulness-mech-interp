@@ -629,7 +629,7 @@ class AttributionGraphBuilder:
             target_node = nodes[i + 1]
             
             # Simple attribution strength based on activation difference
-            attribution_strength = abs(target_node.activation_strength - source_node.activation_strength)
+            attribution_strength = abs(target_node.activation_value - source_node.activation_value)
             
             edge = AttributionEdge(
                 source=source_node,
