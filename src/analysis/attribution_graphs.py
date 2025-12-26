@@ -208,17 +208,23 @@ class AttributionGraphBuilder:
             k["layer"] = k.pop("layer_idx")
         if "position" not in k and "pos" in k:
             k["position"] = k.pop("pos")
-        # Unify feature/component naming
+        # Unify feature/component naming - map to feature_type and remove component_type
         if "feature_type" not in k and "component_type" in k:
-            k["feature_type"] = k["component_type"]
-        if "component_type" not in k and "feature_type" in k:
-            k["component_type"] = k["feature_type"]
-        # Ensure activation_strength is present
-        if "activation_strength" not in k:
-            for alt in ("activation_value", "score", "importance", "weight"):
-                if alt in k:
-                    k["activation_strength"] = k[alt]
-                    break
+            k["feature_type"] = k.pop("component_type")
+        elif "component_type" in k:
+            k.pop("component_type")  # Remove if feature_type already exists
+        # Map activation_strength to activation_value (which AttributionNode expects)
+        if "activation_value" not in k and "activation_strength" in k:
+            k["activation_value"] = k.pop("activation_strength")
+        elif "activation_strength" in k:
+            k.pop("activation_strength")
+        # Set defaults for required fields
+        if "attribution_score" not in k:
+            k["attribution_score"] = k.get("activation_value", 0.0)
+        # Filter to only valid AttributionNode fields
+        valid_fields = {"node_id", "layer", "position", "feature_type", "activation_value", 
+                        "attribution_score", "interpretation", "examples"}
+        k = {key: val for key, val in k.items() if key in valid_fields}
         return k
 
     def _make_node(self, **kwargs):
