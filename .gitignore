@@ -186,7 +186,6 @@ $RECYCLE.BIN/
 *.hdf5
 *.pkl
 *.pickle
-models/
 checkpoints/
 saved_models/
 model_weights/
