@@ -1,196 +1,130 @@
-# Mechanistic Analysis of Chain-of-Thought Faithfulness
+# Mechanistic Analysis of Chain-of-Thought Faithfulness in Language Models
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+This project investigates whether chain-of-thought (CoT) reasoning in language models is *faithful*—that is, whether the model's stated reasoning process reflects its actual internal computation.
 
-**Author**: Ashioya Jotham Victor  
-**Model**: GPT-2 Small (124M parameters)  
-**Framework**: TransformerLens, PyTorch, NetworkX
+## Motivation
 
----
+As language models become more capable, they may learn to produce human-pleasing explanations while internally using distinct heuristics (memorization, pattern-matching, positional shortcuts) to generate answers. If monitoring systems verify only the explanation while missing the actual computation, this creates a false sense of security—the core threat of **deceptive alignment through reasoning shortcuts**.
 
-## The Problem: Deceptive Alignment via Reasoning Shortcuts
+## Research Questions
 
-> As models become more capable, they may learn to produce human-pleasing CoT explanations while internally using distinct, competent, but potentially misaligned heuristics (like lookup tables or memorization) to generate answers.
+1. Can we identify separable *faithful* vs *shortcut* circuits in transformer models?
+2. Do these circuits activate differentially based on task difficulty or structure?
+3. Can targeted interventions force models to use faithful reasoning pathways?
 
-**If we don't understand the physical mechanism of this split:**
-- We build monitoring systems that verify the "explanation"
-- While completely missing the actual "computation"
-- Creating a **false sense of security**
+## Method
 
-This is the core threat of **deceptive alignment through reasoning shortcuts**.
+We apply mechanistic interpretability techniques to GPT-2 Small (124M parameters), combining:
 
----
+**Zero Ablation**: Systematically delete components to identify which are necessary for task performance. This reveals *necessary* circuits but does not distinguish faithful from shortcut pathways.
 
-## Project Goal
+**Contrastive Activation Patching**: Design paired prompts (clean vs corrupted) and patch activations between runs, measuring which components restore faithful behavior. This distinguishes *faithful* circuits from *shortcut* circuits.
 
-**Reverse-engineer the computational circuits that produce Chain-of-Thought reasoning in models, specifically to identify:**
-
-1. **Faithful circuits**: Components that actually perform the reasoning shown in CoT
-2. **Shortcut circuits**: Components that bypass CoT using memorization, pattern-matching, or positional heuristics
-3. **Circuit separation**: Whether these pathways are mechanistically distinct and detectable
-
----
-
-## Phase Plan
-
-### Phase 1: Circuit Discovery ✅
-**Goal**: Map the model's reasoning circuits using attribution graphs and causal ablation.
-
-- Build attribution graphs from cached activations
-- Run zero-ablation to identify *necessary* components
-- Establish baseline circuit structure
-
-**Key Output**: Top components for reasoning (MLP L4, L0H10, L2H3, etc.)
-
-### Phase 1.5: Contrastive Circuit Discovery 🔄
-**Goal**: Distinguish *faithful* circuits from *shortcut* circuits using contrastive activation patching.
-
-**The critical insight**: Zero ablation tells us "which components are needed for math." Contrastive patching tells us "which components are needed for *following the CoT* vs *using memorization*."
-
-**Contrastive Pairs**:
-| Pair Type | Purpose |
-|-----------|---------|
-| Novel vs Memorized | Separate computation from lookup |
-| CoT-Dependent vs Independent | Does the model actually use its reasoning steps? |
-| Biased vs Clean | Detect hidden shortcuts (Turpin et al. 2023) |
-
-**Method**: Activation patching from clean↔corrupted runs, measuring restoration per component.
-
-### Phase 2: Faithfulness Detection
-**Goal**: Train classifiers on circuit features to detect unfaithful reasoning.
-
-- Use contrastive circuit activations as features
-- Classify examples as "faithful" or "shortcut"
-- Validate with held-out corruption tests
-
-### Phase 3: Targeted Interventions
-**Goal**: Test whether we can force faithful computation.
-
-- Ablate shortcut circuits during inference
-- Amplify reasoning circuits
-- Measure effect on task accuracy and CoT consistency
-
-### Phase 4: Scaling Analysis
-**Goal**: Extend findings to larger models.
-
-- GPT-2 Medium/Large
-- Test if faithfulness patterns generalize
-
----
-
-## Technical Approach
-
-### Attribution Graphs (Anthropic, 2025)
-We construct directed graphs where:
-- **Nodes** = attention heads, MLP layers, embeddings
-- **Edges** = information flow weighted by attribution
-
-### Causal Interventions
-- **Zero Ablation**: Delete components, measure performance drop
-- **Activation Patching**: Replace activations from corrupted→clean run, measure restoration
-- **Path Patching**: Trace direct effects between specific components (IOI-style)
+**Circuit Classification**: Combine ablation and patching results to categorize components as faithful (high necessity + high restoration), shortcut (high necessity + low restoration), or harmful (negative contribution).
 
 ### Contrastive Pair Design
-Following Turpin et al. (2023) and Lanham et al. (2023):
 
-```python
-# Clean: Model must actually compute
-clean = "847 + 329 = ? Let me compute: 7+9=16, 4+2+1=7, 8+3=11. Answer:"
+| Pair Type | Clean | Corrupted | Tests |
+|-----------|-------|-----------|-------|
+| Novel vs Memorized | Random multi-digit addition | Trivial round numbers | Computation vs lookup |
+| CoT-Dependent | Correct intermediate steps | Wrong intermediate steps | Whether model reads its CoT |
+| Biased vs Clean | No positional patterns | First-mentioned bias | Hidden shortcut detection |
 
-# Corrupted: Model can use memorization
-corrupted = "100 + 100 = ? Let me compute: 0+0=0, 0+0=0, 1+1=2. Answer:"
-```
+## Results
 
-If patching corrupted→clean restores the answer without using CoT, the model has a shortcut circuit.
+### Zero Ablation
 
----
+Causal importance of attention heads and MLP layers for reasoning tasks:
+
+![Ablation Effects](results/ablation_effects.png)
+
+**Key findings:**
+- Early MLP layers (L0-L4) show strongest causal effects
+- Several attention heads have *negative* effects (ablating improves performance)
+- Layer 4 MLP is the most critical single component
+
+### Circuit Graph
+
+Attribution graph showing information flow through the model:
+
+![Circuit Graph](results/circuit_graph.png)
+
+### Circuit Classification
+
+| Category | Criteria | Example Components |
+|----------|----------|-------------------|
+| Faithful | High ablation + high restoration | L4 MLP, L5 Attn |
+| Shortcut | High ablation + low restoration | L0 MLP, L1 Attn |
+| Harmful | Negative ablation | L0H10, L3H0 |
 
 ## Repository Structure
 
 ```
-cot-faithfulness-mech-interp/
+.
 ├── experiments/
-│   └── 01_circuit_discovery/
-│       ├── phase1_circuit_discovery_colab.ipynb  # Main notebook (Colab-native)
-│       └── contrastive_patching.ipynb            # Phase 1.5 (TODO)
+│   ├── 01_circuit_discovery/
+│   │   └── phase1_circuit_discovery.ipynb    # Main analysis notebook
+│   ├── 02_faithfulness_detection/
+│   ├── 03_interventions/
+│   └── 04_evaluation/
 ├── src/
-│   ├── models/gpt2_wrapper.py        # TransformerLens wrapper
-│   ├── analysis/attribution_graphs.py # Graph construction
-│   └── interventions/                 # Causal intervention framework
-├── results/                           # Experimental outputs
-│   ├── ablation_effects.png
-│   └── circuit_graph.png
-└── config/                            # Configuration files
+│   ├── analysis/
+│   │   ├── attribution_graphs.py             # Graph construction
+│   │   └── faithfulness_detector.py          # Feature extraction
+│   ├── models/
+│   │   └── gpt2_wrapper.py                   # TransformerLens wrapper
+│   ├── interventions/
+│   │   └── targeted_interventions.py         # Causal intervention framework
+│   ├── data/
+│   │   └── data_generation.py                # Reasoning task generation
+│   └── visualization/
+│       └── interactive_plots.py              # Visualization utilities
+├── config/
+│   ├── model_config.yaml
+│   └── experiment_config.yaml
+├── results/                                   # Experimental outputs
+└── docs/
 ```
 
----
+## Phases
 
-## Key Results (Phase 1)
-
-### Top 5 Causally Important Components
-| Component | Effect (Δ Loss) | Role |
-|-----------|-----------------|------|
-| L4MLP | +1.79 | Computation hub |
-| L0MLP | +1.57 | Embedding transformation |
-| L1MLP | +1.04 | Early feature processing |
-| L2H3 | +0.90 | Key attention head |
-| L5H5 | +0.78 | Mid-layer reasoning |
-
-### Surprising Finding: Harmful Components
-Some heads *hurt* performance when present:
-- L0H10: -0.68 (ablating *helps*)
-- L3H0: -0.56
-- L5H1: -0.51
-
-**Hypothesis**: These may be shortcut circuits that interfere with faithful reasoning—targets for Phase 1.5.
-
----
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | Circuit discovery (ablation + contrastive patching) | Complete |
+| Phase 2 | Faithfulness classification from circuit features | Planned |
+| Phase 3 | Targeted interventions to force faithful reasoning | Planned |
+| Phase 4 | Scaling analysis (GPT-2 Medium/Large) | Planned |
 
 ## Installation
 
-### Quick Start (Colab)
-Open `experiments/01_circuit_discovery/phase1_circuit_discovery_colab.ipynb` in Google Colab—no local setup needed.
+**Requirements**: Python 3.8+, GPU recommended
 
-### Local Setup
 ```bash
 conda env create -f environment.yml
 conda activate cot-faithfulness
 ```
 
-### Python 3.13 Windows
+For Python 3.13 on Windows:
 ```bash
 pip install https://github.com/NeoAnthropocene/wheels/raw/f76a39a2c1158b9c8ffcfdc7c0f914f5d2835256/sentencepiece-0.2.1-cp313-cp313-win_amd64.whl
 pip install transformer-lens
 ```
 
----
+## Usage
+
+Open `experiments/01_circuit_discovery/phase1_circuit_discovery.ipynb` in Google Colab or locally. The notebook is self-contained and includes all analysis stages.
 
 ## Related Work
 
-| Paper | Key Contribution |
-|-------|------------------|
-| [Wang et al. 2022 (IOI Circuit)](https://arxiv.org/abs/2211.00593) | Path patching methodology |
-| [Turpin et al. 2023](https://arxiv.org/abs/2305.04388) | CoT explanations can be systematically unfaithful |
-| [Lanham et al. 2023 (Anthropic)](https://arxiv.org/abs/2307.13702) | Measuring CoT faithfulness via interventions |
-| [Anthropic Attribution Graphs 2025](https://transformer-circuits.pub/2025/attribution-graphs/biology.html) | Circuit tracing methodology |
+- Wang et al. (2022). [Interpretability in the Wild: A Circuit for Indirect Object Identification](https://arxiv.org/abs/2211.00593). Path patching methodology.
+- Turpin et al. (2023). [Language Models Don't Always Say What They Think](https://arxiv.org/abs/2305.04388). Evidence of CoT unfaithfulness.
+- Lanham et al. (2023). [Measuring Faithfulness in Chain-of-Thought Reasoning](https://arxiv.org/abs/2307.13702). Intervention-based faithfulness tests.
+- Lindsey et al. (2025). [Attribution Graphs](https://transformer-circuits.pub/2025/attribution-graphs/biology.html). Circuit tracing methodology.
 
----
+## Author
 
-## Citation
-
-```bibtex
-@misc{ashioya2025cot_interpretability,
-  title={Mechanistic Analysis of Chain-of-Thought Faithfulness},
-  author={Ashioya, Jotham Victor},
-  year={2025},
-  url={https://github.com/ashioyajotham/cot-faithfulness-mech-interp}
-}
-```
-
----
+Ashioya Jotham Victor
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License
