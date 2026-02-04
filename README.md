@@ -1,232 +1,182 @@
-# Mechanistic Analysis of Chain-of-Thought Faithfulness in Language Models
+# Mechanistic Analysis of Chain-of-Thought Faithfulness
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
-[![Python 3.13 Compatible](https://img.shields.io/badge/python-3.13%20compatible-brightgreen.svg)](https://github.com/google/sentencepiece/issues/1104)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Author**: Ashioya Jotham Victor
-
-**Model**: GPT-2 Small (124M parameters)
-
+**Author**: Ashioya Jotham Victor  
+**Model**: GPT-2 Small (124M parameters)  
 **Framework**: TransformerLens, PyTorch, NetworkX
 
 ---
 
-## Overview
+## The Problem: Deceptive Alignment via Reasoning Shortcuts
 
-This work applies mechanistic interpretability techniques to reverse-engineer the computational circuits underlying chain-of-thought (CoT) reasoning in GPT-2 Small. Adapting Anthropic's [Attribution Graphs methodology](https://transformer-circuits.pub/2025/attribution-graphs/biology.html) (Lindsey et al., 2025)—which uses cross-layer transcoders and local replacement models to trace circuits in Claude 3.5 Haiku—we develop a direct activation analysis pipeline for GPT-2 via TransformerLens hooks to:
+> As models become more capable, they may learn to produce human-pleasing CoT explanations while internally using distinct, competent, but potentially misaligned heuristics (like lookup tables or memorization) to generate answers.
 
-1. Construct and analyze attribution graphs mapping information flow during reasoning
-2. Identify critical circuit components through causal interventions (activation ablation and patching)
-3. Quantify mechanistic contributions of individual attention heads and MLP features
-4. Evaluate circuit quality via intervention-based metrics (faithfulness, completeness, minimality)
+**If we don't understand the physical mechanism of this split:**
+- We build monitoring systems that verify the "explanation"
+- While completely missing the actual "computation"
+- Creating a **false sense of security**
 
-While Anthropic's approach uses sparse feature dictionaries (30M features) for interpretable decomposition, our implementation directly analyzes GPT-2's native computational components (attention heads, MLP layers) to identify minimal circuits sufficient for CoT reasoning across arithmetic, physics, and logical reasoning tasks. This allows systematic investigation of CoT faithfulness patterns—including motivated reasoning, hallucination, and backward chaining—through graph-based circuit analysis.
+This is the core threat of **deceptive alignment through reasoning shortcuts**.
 
-## Methodological Foundation
+---
 
-### Circuit Discovery via Attribution Graphs
+## Project Goal
 
-Following Anthropic's circuit discovery methodology, we construct directed attribution graphs where:
+**Reverse-engineer the computational circuits that produce Chain-of-Thought reasoning in models, specifically to identify:**
 
-- **Nodes** represent computational units (attention heads, MLP features, embeddings)
-- **Edges** represent information flow with attribution weights
-- **Node attributes** track layer index, feature type, and causal importance
+1. **Faithful circuits**: Components that actually perform the reasoning shown in CoT
+2. **Shortcut circuits**: Components that bypass CoT using memorization, pattern-matching, or positional heuristics
+3. **Circuit separation**: Whether these pathways are mechanistically distinct and detectable
 
-The attribution graph construction process:
+---
 
-1. Cache model activations during forward pass through TransformerLens hooks
-2. Extract per-layer computations (attention head outputs, MLP pre/post-activation states)
-3. Build edge weights based on activation strengths and cross-layer dependencies
-4. Apply pruning threshold to create sparse, interpretable subgraphs
+## Phase Plan
 
-Current implementation constructs graphs with 602 nodes and 27,600 edges across a 12-layer transformer, with dominant information flow from layer 9 through 11.
+### Phase 1: Circuit Discovery ✅
+**Goal**: Map the model's reasoning circuits using attribution graphs and causal ablation.
 
-### Causal Intervention Protocol
+- Build attribution graphs from cached activations
+- Run zero-ablation to identify *necessary* components
+- Establish baseline circuit structure
 
-To identify circuit components causally necessary for correct reasoning, we employ:
+**Key Output**: Top components for reasoning (MLP L4, L0H10, L2H3, etc.)
 
-**Activation Ablation**: Zero out individual attention heads or MLP features at specific token positions and measure effect on final prediction through cross-entropy loss.
+### Phase 1.5: Contrastive Circuit Discovery 🔄
+**Goal**: Distinguish *faithful* circuits from *shortcut* circuits using contrastive activation patching.
 
-**Activation Patching**: Replace activations from a 'corrupted run' (incorrect reasoning) with clean activations from a correct run. Restored predictions indicate causally necessary components.
+**The critical insight**: Zero ablation tells us "which components are needed for math." Contrastive patching tells us "which components are needed for *following the CoT* vs *using memorization*."
 
-This methodology is directly comparable to intervention protocols in the IOI circuit work, enabling:
+**Contrastive Pairs**:
+| Pair Type | Purpose |
+|-----------|---------|
+| Novel vs Memorized | Separate computation from lookup |
+| CoT-Dependent vs Independent | Does the model actually use its reasoning steps? |
+| Biased vs Clean | Detect hidden shortcuts (Turpin et al. 2023) |
 
-- Per-component effect quantification
-- Identification of minimal sufficient circuits
-- Cross-task generalization analysis
+**Method**: Activation patching from clean↔corrupted runs, measuring restoration per component.
 
-### Feature-Level Analysis
+### Phase 2: Faithfulness Detection
+**Goal**: Train classifiers on circuit features to detect unfaithful reasoning.
 
-Building on sparse autoencoder (SAE) interpretability work (Cunningham et al., 2023), we decompose MLP features to identify monosemantic vs. polysemantic activations. This allows distinguishing:
+- Use contrastive circuit activations as features
+- Classify examples as "faithful" or "shortcut"
+- Validate with held-out corruption tests
 
-- General computational features (active across task types)
-- Reasoning-specific features (active for CoT problems)
-- Artifact features (spurious activations)
+### Phase 3: Targeted Interventions
+**Goal**: Test whether we can force faithful computation.
 
-## Implementation Structure
+- Ablate shortcut circuits during inference
+- Amplify reasoning circuits
+- Measure effect on task accuracy and CoT consistency
 
-```tree
-cot-faithfulness-mech-interp/
-├── src/
-│   ├── models/
-│   │   └── gpt2_wrapper.py           # GPT-2 with activation caching
-│   ├── analysis/
-│   │   ├── attribution_graphs.py     # Graph construction from activations
-│   │   └── faithfulness_detector.py  # Feature extraction for analysis
-│   ├── interventions/
-│   │   └── targeted_interventions.py # Causal intervention framework
-│   ├── data/
-│   │   └── data_generation.py        # Reasoning task generation
-│   └── visualization/
-│       └── interactive_plots.py      # Interactive graph/ablation plots
-├── experiments/
-│   ├── phase1_circuit_discovery.ipynb        # Attribution & ablation analysis
-│   ├── phase2_faithfulness_detection.ipynb   # ML classification framework
-│   ├── phase3_targeted_interventions.ipynb   # Intervention experiments
-│   └── phase4_evaluation_analysis.ipynb      # Comparative analysis
-├── config/
-│   ├── model_config.yaml             # Model hyperparameters
-│   ├── experiment_config.yaml        # Analysis settings
-│   └── paths_config.yaml             # Data/output paths
-├── data/                             # Datasets and cached results
-├── results/                          # Experimental outputs
-├── docs/                             # Documentation
-└── requirements.txt                  # Dependencies
-```
+### Phase 4: Scaling Analysis
+**Goal**: Extend findings to larger models.
+
+- GPT-2 Medium/Large
+- Test if faithfulness patterns generalize
+
+---
 
 ## Technical Approach
 
-### Task Design
+### Attribution Graphs (Anthropic, 2025)
+We construct directed graphs where:
+- **Nodes** = attention heads, MLP layers, embeddings
+- **Edges** = information flow weighted by attribution
 
-We evaluate circuit discovery across three reasoning domains:
+### Causal Interventions
+- **Zero Ablation**: Delete components, measure performance drop
+- **Activation Patching**: Replace activations from corrupted→clean run, measure restoration
+- **Path Patching**: Trace direct effects between specific components (IOI-style)
 
-**Arithmetic Reasoning**: Simple multi-digit addition/subtraction with intermediate step verification.
-
-**Physics Reasoning**: Qualitative physics reasoning (forces, motion, energy conservation) with step-by-step derivations.
-
-**Logical Reasoning**: Propositional logic with transitive relations, requiring chained inference steps.
-
-Each task is instantiated as a completion prompt without explicit "=" terminal markers to avoid spurious token-level shortcuts.
-
-### Model Selection
-
-We use GPT-2 Small (124M parameters) as the analysis target because:
-
-1. Full model size enables comprehensive mechanistic analysis within compute constraints
-2. Sufficient reasoning capability for CoT tasks (verified via generation quality assessment)
-3. Established precedent for circuit discovery (IOI circuit paper uses identical model)
-4. Manageable activation cache memory footprint (enables full-model analysis)
-
-### Activation Collection
-
-Using TransformerLens's hook system:
+### Contrastive Pair Design
+Following Turpin et al. (2023) and Lanham et al. (2023):
 
 ```python
-cache = model.generate_with_cache(
-    prompt=reasoning_prompt,
-    max_new_tokens=80
-)
+# Clean: Model must actually compute
+clean = "847 + 329 = ? Let me compute: 7+9=16, 4+2+1=7, 8+3=11. Answer:"
+
+# Corrupted: Model can use memorization
+corrupted = "100 + 100 = ? Let me compute: 0+0=0, 0+0=0, 1+1=2. Answer:"
 ```
 
-This captures all layer computations for subsequent analysis.
+If patching corrupted→clean restores the answer without using CoT, the model has a shortcut circuit.
 
-## Key Results
+---
 
-### Circuit Contribution Analysis
+## Repository Structure
 
-Causal ablation across four reasoning examples identifies top contributors:
-
-```python
-Component Importance (Mean Causal Effect on Prediction):
-- MLP(L0): 15.14  [Embedding transformation, token interaction]
-- Head(L0.0): 2.81 [Early attention, position tracking]
-- Head(L5.1): 2.45 [Mid-layer reasoning head]
-- MLP(L4): 2.35   [Feature composition]
-- Head(L0.8): 1.07 [Early attention pattern]
+```
+cot-faithfulness-mech-interp/
+├── experiments/
+│   └── 01_circuit_discovery/
+│       ├── phase1_circuit_discovery_colab.ipynb  # Main notebook (Colab-native)
+│       └── contrastive_patching.ipynb            # Phase 1.5 (TODO)
+├── src/
+│   ├── models/gpt2_wrapper.py        # TransformerLens wrapper
+│   ├── analysis/attribution_graphs.py # Graph construction
+│   └── interventions/                 # Causal intervention framework
+├── results/                           # Experimental outputs
+│   ├── ablation_effects.png
+│   └── circuit_graph.png
+└── config/                            # Configuration files
 ```
 
-Observation: Early layers (L0-L1) show strongest causal effects, suggesting embedding-level transformations are critical for CoT routing.
+---
 
-### Information Flow Patterns
+## Key Results (Phase 1)
 
-Hub analysis reveals:
+### Top 5 Causally Important Components
+| Component | Effect (Δ Loss) | Role |
+|-----------|-----------------|------|
+| L4MLP | +1.79 | Computation hub |
+| L0MLP | +1.57 | Embedding transformation |
+| L1MLP | +1.04 | Early feature processing |
+| L2H3 | +0.90 | Key attention head |
+| L5H5 | +0.78 | Mid-layer reasoning |
 
-- **Source hubs** (high outgoing weights): L10 MLP features (496, 373, 481)
-- **Sink hubs** (high incoming weights): L11 attention heads
-- **Critical flow**: L9 residual → L10 MLP → L11 attention → prediction
+### Surprising Finding: Harmful Components
+Some heads *hurt* performance when present:
+- L0H10: -0.68 (ablating *helps*)
+- L3H0: -0.56
+- L5H1: -0.51
 
-This L9→L11 bottleneck represents approximately 40% of total attribution weight, indicating compressed information flow through deep layers.
+**Hypothesis**: These may be shortcut circuits that interfere with faithful reasoning—targets for Phase 1.5.
 
-### Graph Statistics
-
-- **Nodes**: 602 (1 embedding, 48 attention heads, 48 MLPs, 1 output)
-- **Edges**: 27,600
-- **Mean edge weight**: 1.144
-- **95th percentile**: 3.531
-- **Sparsity**: 92.4% (consistent with mechanistic interpretability expectations)
+---
 
 ## Installation
 
-### Prerequisites
+### Quick Start (Colab)
+Open `experiments/01_circuit_discovery/phase1_circuit_discovery_colab.ipynb` in Google Colab—no local setup needed.
 
-- Python 3.8+ (tested on 3.13.5)
-- GPU recommended (CPU fallback supported)
-- 16GB RAM, 50GB disk space
-
-### Setup (Conda)
-
+### Local Setup
 ```bash
 conda env create -f environment.yml
 conda activate cot-faithfulness
 ```
 
-### Python 3.13 Windows Compatibility
-
-Due to upstream sentencepiece packaging issues, install pre-built wheel:
-
+### Python 3.13 Windows
 ```bash
 pip install https://github.com/NeoAnthropocene/wheels/raw/f76a39a2c1158b9c8ffcfdc7c0f914f5d2835256/sentencepiece-0.2.1-cp313-cp313-win_amd64.whl
 pip install transformer-lens
 ```
 
-See [google/sentencepiece#1104](https://github.com/google/sentencepiece/issues/1104) for details.
-
-## Usage
-
-### Phase 1: Circuit Discovery
-
-Open and run experiments/phase1_circuit_discovery.ipynb for end-to-end attribution graph construction and causal ablation analysis.
-
-### Phase 2: Causal Ablation
-
-Quantify per-component importance with activation ablation and patching studies.
-
-### Phase 3: Visualization
-
-Interactive graph exploration with hierarchical layouts and attribution visualization.
-
-## Evaluation Criteria
-
-Following the IOI circuit framework (Wang et al., 2022), we evaluate discovered circuits via:
-
-**Faithfulness**: Does the identified circuit produce correct outputs when isolated (with other components ablated)?
-
-**Completeness**: Does the circuit capture all necessary components, or are critical features missing?
-
-**Minimality**: Are all circuit components necessary, or can spurious components be removed?
-
-These metrics enable quantitative circuit quality assessment beyond visual inspection.
+---
 
 ## Related Work
 
-This work directly builds on:
+| Paper | Key Contribution |
+|-------|------------------|
+| [Wang et al. 2022 (IOI Circuit)](https://arxiv.org/abs/2211.00593) | Path patching methodology |
+| [Turpin et al. 2023](https://arxiv.org/abs/2305.04388) | CoT explanations can be systematically unfaithful |
+| [Lanham et al. 2023 (Anthropic)](https://arxiv.org/abs/2307.13702) | Measuring CoT faithfulness via interventions |
+| [Anthropic Attribution Graphs 2025](https://transformer-circuits.pub/2025/attribution-graphs/biology.html) | Circuit tracing methodology |
 
-- **[Attribution Graphs - Anthropic (2025)](https://transformer-circuits.pub/2025/attribution-graphs/biology.html)**: Core methodology for circuit tracing in language models; introduces cross-layer transcoders (CLTs), attribution graph construction, and systematic validation protocols. Demonstrates circuit analysis on Claude 3.5 Haiku across multi-step reasoning, chain-of-thought faithfulness, and hidden goal detection
-- **[IOI Circuit - Wang et al. (2022)](https://arxiv.org/abs/2211.00593)**: Foundational circuit discovery methodology for GPT-2 small; identifies 26 attention heads across 7 classes for indirect object identification task
-- **[SAEs for Mechanistic Interpretability - Cunningham et al. (2023)](https://arxiv.org/abs/2309.08600)**: Feature-level interpretability through sparse autoencoders; demonstrates monosemanticity and causal responsibility of learned features
-- **[Anthropic Circuits Research](https://transformer-circuits.pub/)**: Comprehensive framework for reverse-engineering transformer circuits; establishes best practices for attribution analysis and intervention protocols
+---
 
 ## Citation
 
@@ -239,8 +189,8 @@ This work directly builds on:
 }
 ```
 
+---
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
-
----
