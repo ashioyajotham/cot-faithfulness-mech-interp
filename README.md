@@ -14,7 +14,7 @@ As language models become more capable, they may learn to produce human-pleasing
 
 ## Method
 
-We apply mechanistic interpretability techniques to GPT-2 Small (124M parameters), combining:
+We apply mechanistic interpretability techniques to GPT-2 Small (124M parameters) as a baseline, combining:
 
 **Zero Ablation**: Systematically delete components to identify which are necessary for task performance. This reveals *necessary* circuits but does not distinguish faithful from shortcut pathways.
 
@@ -30,7 +30,7 @@ We apply mechanistic interpretability techniques to GPT-2 Small (124M parameters
 | CoT-Dependent | Correct intermediate steps | Wrong intermediate steps | Whether model reads its CoT |
 | Biased vs Clean | No positional patterns | First-mentioned bias | Hidden shortcut detection |
 
-## Results
+## Results (Phase 1: GPT-2 Small Baseline)
 
 ### Zero Ablation
 
@@ -39,23 +39,34 @@ Causal importance of attention heads and MLP layers for reasoning tasks:
 ![Ablation Effects](results/ablation_effects.png)
 
 **Key findings:**
-- Early MLP layers (L0-L4) show strongest causal effects
-- Several attention heads have *negative* effects (ablating improves performance)
-- Layer 4 MLP is the most critical single component
+- L0 MLP is overwhelmingly the most critical component (+10.61 loss increase when ablated)
+- Several attention heads (L1H10, L6H6) have *negative* effects (ablating improves performance)
+- Early layers show strongest causal effects overall
 
-### Circuit Graph
+### Contrastive Patching
 
-Attribution graph showing information flow through the model:
+![Contrastive Restoration](results/phase1_circuit_discovery/contrastive_restoration.png)
 
-![Circuit Graph](results/circuit_graph.png)
+**Key findings:**
+- L0 MLP has highest restoration score (0.756) — most faithful component
+- Early attention (L0, L9) also shows high restoration (0.35+)
+- Late layer components (L10 MLP/Attn) show *negative* restoration — potential shortcuts
 
 ### Circuit Classification
 
-| Category | Criteria | Example Components |
-|----------|----------|-------------------|
-| Faithful | High ablation + high restoration | L4 MLP, L5 Attn |
-| Shortcut | High ablation + low restoration | L0 MLP, L1 Attn |
-| Harmful | Negative ablation | L0H10, L3H0 |
+| Category | Criteria | Components Found |
+|----------|----------|-----------------|
+| Faithful | High ablation + high restoration | L0 MLP, L0 Attn, L9 Attn |
+| Shortcut | Ablation effect + negative restoration | L10 MLP, L10 Attn |
+| Harmful | Negative ablation | L1H10, L6H6 |
+
+### Hypothesis Validation
+
+**Supported**: The existence of separable faithful and shortcut circuits supports the hypothesis that models can:
+- Produce plausible CoT explanations (via faithful pathways in L0)
+- Internally compute via shortcuts (late-layer heuristics in L10)
+
+**Caveats**: GPT-2 Small serves as a baseline. Future work will scale to larger models.
 
 ## Repository Structure
 
@@ -104,10 +115,9 @@ conda env create -f environment.yml
 conda activate cot-faithfulness
 ```
 
-For Python 3.13 on Windows:
-```bash
-pip install https://github.com/NeoAnthropocene/wheels/raw/f76a39a2c1158b9c8ffcfdc7c0f914f5d2835256/sentencepiece-0.2.1-cp313-cp313-win_amd64.whl
-pip install transformer-lens
+For Colab, install directly in notebook:
+```python
+!pip install 'transformers>=4.40,<4.46' transformer-lens torch matplotlib networkx einops jaxtyping -q
 ```
 
 ## Usage
