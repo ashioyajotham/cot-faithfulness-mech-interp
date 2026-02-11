@@ -67,7 +67,7 @@ print(f"d_head: {D_HEAD}, d_model: {D_MODEL}")
 # ============================================================================
 # PHASE 1.5 RESULTS: Key Components (from head-level circuit discovery)
 # ============================================================================
-# These are ACTUAL results from Phase 1.5 head-level patching experiments
+# Results from Phase 1.5 head-level patching experiments
 
 # FAITHFUL HEADS: High restoration score (restore CoT behavior when patched)
 FAITHFUL_HEADS = [
