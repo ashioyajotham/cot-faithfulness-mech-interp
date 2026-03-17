@@ -203,7 +203,7 @@ data/external/
 *.arrow
 
 # Experiment results and logs
-results/
+#results/
 outputs/
 logs/
 runs/
