@@ -36,7 +36,7 @@ We apply mechanistic interpretability techniques to GPT-2 Small (124M parameters
 
 Causal importance of attention heads and MLP layers for reasoning tasks:
 
-![Ablation Effects](results/ablation_effects.png)
+![Ablation Effects](results/phase1_circuit_discovery/ablation_effects.png)
 
 **Key findings:**
 - L0 MLP is overwhelmingly the most critical component (+10.61 loss increase when ablated)
@@ -137,4 +137,4 @@ Ashioya Jotham Victor
 
 ## License
 
-MIT License
+Read the [LICENSE](LICENSE) file for more information.
