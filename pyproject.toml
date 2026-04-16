@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cot-faithfulness"
+version = "2.0.0"
+description = "Mechanistic detection of unfaithful chain-of-thought reasoning"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "Victor Ashioya", email = "ashioyajotham@gmail.com"}]
+
+dependencies = [
+    "torch>=2.0",
+    "transformer-lens>=2.0",
+    "transformers>=4.40",
+    "numpy>=1.26",
+    "einops",
+    "jaxtyping",
+]
+
+[project.optional-dependencies]
+phase1 = [
+    "scikit-learn>=1.4",
+    "matplotlib",
+    "seaborn",
+    "plotly",
+    "networkx",
+    "wandb>=0.16",
+    "joblib",
+    "pandas",
+]
+phase2a = [
+    "cot-faithfulness[phase1]",
+    "scipy>=1.12",
+]
+phase2b = [
+    "cot-faithfulness[phase2a]",
+    "modal",
+    "datasets",
+]
+dev = [
+    "cot-faithfulness[phase2b]",
+    "pytest>=7.0",
+    "ruff",
+]
+
+[tool.setuptools.packages.find]
+include = ["shared*", "phase2*", "modal_jobs*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

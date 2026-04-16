@@ -1,0 +1,25 @@
+model:
+  name: google/gemma-3-12b-it
+  device: cuda
+  dtype: bfloat16
+  fold_ln: false
+  center_writing_weights: false
+  center_unembed: false
+
+patching:
+  strategy: two_pass
+  pass1_components: [hook_attn_out, hook_mlp_out]
+  pass2_top_k_layers: 8  # Gemma has 48 layers, wider pass 1 filter
+  pass2_component: hook_z
+  logit_diff_position: last_token
+
+sae:
+  release: gemma-scope-3-12b-it-res
+  width: 16k
+  top_k_features: 20
+
+compute:
+  provider: modal
+  gpu: A100
+  memory_gb: 80
+  timeout_minutes: 120

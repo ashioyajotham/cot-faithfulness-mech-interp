@@ -1,0 +1,20 @@
+model:
+  name: gpt2
+  device: cpu  # 2A runs on CPU — no GPU needed
+
+probe:
+  n_bootstrap_iterations: 1000
+  alpha: 0.05
+  selectivity_threshold: 0.15
+
+control_tasks:
+  n_random_labels: 5
+  stratify_by: prompt_number  # Match Hewitt-Liang protocol
+
+false_negatives:
+  confidence_threshold: 0.99
+  cluster_features:
+    - carry_required
+    - sum_magnitude
+    - corruption_severity
+    - cot_corruption_type

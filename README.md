@@ -1,140 +1,77 @@
-# Mechanistic Analysis of Chain-of-Thought Faithfulness in Language Models
+# When Models Lie to Please: Mechanistic Detection of Unfaithful Chain-of-Thought
 
-This project investigates whether chain-of-thought (CoT) reasoning in language models is *faithful*—that is, whether the model's stated reasoning process reflects its actual internal computation.
+This project investigates whether chain-of-thought (CoT) reasoning in language models is *faithful* — whether the model's stated reasoning process reflects its actual internal computation. We use mechanistic interpretability techniques (activation patching, linear probes, steering vectors) to identify separable *faithful* vs *shortcut* circuits in transformers, and build detectors that work at the activation level.
 
-## Motivation
+## Project Status
 
-As language models become more capable, they may learn to produce human-pleasing explanations while internally using distinct heuristics (memorization, pattern-matching, positional shortcuts) to generate answers. If monitoring systems verify only the explanation while missing the actual computation, this creates a false sense of security—the core threat of **deceptive alignment through reasoning shortcuts**.
+| Phase | Description | Status |
+|-------|-------------|--------|
+| **Phase 1** | GPT-2 Small baseline — circuit discovery, detection probe, dataset | **Complete** (v1.0.0) |
+| **Phase 2A** | Validate Phase 1 claims — probe selectivity, error analysis, bootstrap CI | **In progress** |
+| **Phase 2B** | Scale to Qwen2.5-Math-7B and Gemma 3 12B IT — intervention experiments | Planned |
 
-## Research Questions
+## Key Results (Phase 1)
 
-1. Can we identify separable *faithful* vs *shortcut* circuits in transformer models?
-2. Do these circuits activate differentially based on task difficulty or structure?
-3. Can targeted interventions force models to use faithful reasoning pathways?
-
-## Method
-
-We apply mechanistic interpretability techniques to GPT-2 Small (124M parameters) as a baseline, combining:
-
-**Zero Ablation**: Systematically delete components to identify which are necessary for task performance. This reveals *necessary* circuits but does not distinguish faithful from shortcut pathways.
-
-**Contrastive Activation Patching**: Design paired prompts (clean vs corrupted) and patch activations between runs, measuring which components restore faithful behavior. This distinguishes *faithful* circuits from *shortcut* circuits.
-
-**Circuit Classification**: Combine ablation and patching results to categorize components as faithful (high necessity + high restoration), shortcut (high necessity + low restoration), or harmful (negative contribution).
-
-### Contrastive Pair Design
-
-| Pair Type | Clean | Corrupted | Tests |
-|-----------|-------|-----------|-------|
-| Novel vs Memorized | Random multi-digit addition | Trivial round numbers | Computation vs lookup |
-| CoT-Dependent | Correct intermediate steps | Wrong intermediate steps | Whether model reads its CoT |
-| Biased vs Clean | No positional patterns | First-mentioned bias | Hidden shortcut detection |
-
-## Results (Phase 1: GPT-2 Small Baseline)
-
-### Zero Ablation
-
-Causal importance of attention heads and MLP layers for reasoning tasks:
-
-![Ablation Effects](results/phase1_circuit_discovery/ablation_effects.png)
-
-**Key findings:**
-- L0 MLP is overwhelmingly the most critical component (+10.61 loss increase when ablated)
-- Several attention heads (L1H10, L6H6) have *negative* effects (ablating improves performance)
-- Early layers show strongest causal effects overall
-
-### Contrastive Patching
-
-![Contrastive Restoration](results/phase1_circuit_discovery/contrastive_restoration.png)
-
-**Key findings:**
-- L0 MLP has highest restoration score (0.756) — most faithful component
-- Early attention (L0, L9) also shows high restoration (0.35+)
-- Late layer components (L10 MLP/Attn) show *negative* restoration — potential shortcuts
-
-### Circuit Classification
-
-| Category | Criteria | Components Found |
-|----------|----------|-----------------|
-| Faithful | High ablation + high restoration | L0 MLP, L0 Attn, L9 Attn |
-| Shortcut | Ablation effect + negative restoration | L10 MLP, L10 Attn |
-| Harmful | Negative ablation | L1H10, L6H6 |
-
-### Hypothesis Validation
-
-**Supported**: The existence of separable faithful and shortcut circuits supports the hypothesis that models can:
-- Produce plausible CoT explanations (via faithful pathways in L0)
-- Internally compute via shortcuts (late-layer heuristics in L10)
-
-**Caveats**: GPT-2 Small serves as a baseline. Future work will scale to larger models.
+- **23 causally-verified circuit components** identified via activation patching
+- **L7H6** identified as the dominant shortcut head (restoration score −0.329)
+- **88.1% detection accuracy** (ROC-AUC 0.949) via linear probe on circuit activations
+- **Separable faithful/shortcut circuits** confirmed: early-layer faithful heads (L0H1, L0MLP), mid-to-late shortcut heads (L7H6, L5H9)
 
 ## Repository Structure
 
 ```
-.
-├── experiments/
-│   ├── 01_circuit_discovery/
-│   │   └── phase1_circuit_discovery.ipynb    # Main analysis notebook
-│   ├── 02_faithfulness_detection/
-│   ├── 03_interventions/
-│   └── 04_evaluation/
-├── src/
-│   ├── analysis/
-│   │   ├── attribution_graphs.py             # Graph construction
-│   │   └── faithfulness_detector.py          # Feature extraction
-│   ├── models/
-│   │   └── gpt2_wrapper.py                   # TransformerLens wrapper
-│   ├── interventions/
-│   │   └── targeted_interventions.py         # Causal intervention framework
-│   ├── data/
-│   │   └── data_generation.py                # Reasoning task generation
-│   └── visualization/
-│       └── interactive_plots.py              # Visualization utilities
-├── config/
-│   ├── model_config.yaml
-│   └── experiment_config.yaml
-├── results/                                   # Experimental outputs
-└── docs/
+cot-faithfulness-mech-interp/
+├── phase1/                     # GPT-2 Small baseline — FROZEN (v1.0.0)
+├── phase2/
+│   ├── 2a_validation/          # Probe selectivity, error analysis, bootstrap CI
+│   └── 2b_scaling/             # Qwen2.5-Math-7B + Gemma 3 12B IT pipelines
+├── shared/                     # Model-agnostic patching, probing, data utilities
+├── datasets/                   # Standalone contrastive pair datasets
+├── modal_jobs/                 # Remote GPU execution entry points
+├── tests/                      # Test suite
+├── docs/                       # Research proposal, project structure, troubleshooting
+├── pyproject.toml              # Package definition + optional dependency groups
+└── requirements.txt            # Pinned dependencies for reproducibility
 ```
 
-## Phases
-
-| Phase | Description | Status |
-|-------|-------------|--------|
-| Phase 1 | Circuit discovery (ablation + contrastive patching) | Complete |
-| Phase 2 | Faithfulness classification from circuit features | Planned |
-| Phase 3 | Targeted interventions to force faithful reasoning | Planned |
-| Phase 4 | Scaling analysis (GPT-2 Medium/Large) | Planned |
-
-## Installation
-
-**Requirements**: Python 3.8+, GPU recommended
+## Quick Start
 
 ```bash
-conda env create -f environment.yml
-conda activate cot-faithfulness
+# Clone
+git clone https://github.com/ashioyajotham/cot-faithfulness-mech-interp
+cd cot-faithfulness-mech-interp
+
+# Phase 2A (CPU only, fast)
+pip install -e ".[phase2a]"
+pytest tests/ -v
+
+# Phase 2B (GPU, full stack)
+pip install -e ".[phase2b]"
+modal run modal_jobs/phase2b_qwen_runner.py
 ```
 
-For Colab, install directly in notebook:
-```python
-!pip install 'transformers>=4.40,<4.46' transformer-lens torch matplotlib networkx einops jaxtyping -q
-```
+## Research Questions (Phase 2)
 
-## Usage
-
-Open `experiments/01_circuit_discovery/phase1_circuit_discovery.ipynb` in Google Colab or locally. The notebook is self-contained and includes all analysis stages.
+1. **Probe validity (RQ1):** Does the linear probe satisfy the Hewitt-Liang selectivity criterion?
+2. **Failure modes (RQ2):** What distinguishes the 11 high-confidence false negatives?
+3. **Statistical robustness (RQ3):** Is L7H6's dominance stable under bootstrap resampling?
+4. **Scaling (RQ4):** Does the same circuit structure emerge in Qwen2.5-Math-7B and Gemma 3 12B IT?
+5. **Intervention (RQ5):** Does ablating shortcut heads shift model behaviour on unfaithful examples?
 
 ## Related Work
 
-- Wang et al. (2022). [Interpretability in the Wild: A Circuit for Indirect Object Identification](https://arxiv.org/abs/2211.00593). Path patching methodology.
-- Turpin et al. (2023). [Language Models Don't Always Say What They Think](https://arxiv.org/abs/2305.04388). Evidence of CoT unfaithfulness.
-- Lanham et al. (2023). [Measuring Faithfulness in Chain-of-Thought Reasoning](https://arxiv.org/abs/2307.13702). Intervention-based faithfulness tests.
-- Lindsey et al. (2025). [Attribution Graphs](https://transformer-circuits.pub/2025/attribution-graphs/biology.html). Circuit tracing methodology.
+- Wang et al. (2022). [Interpretability in the Wild](https://arxiv.org/abs/2211.00593) — path patching methodology
+- Turpin et al. (2023). [Language Models Don't Always Say What They Think](https://arxiv.org/abs/2305.04388) — CoT unfaithfulness evidence
+- Chen et al. (2025). [Reasoning Models Don't Always Say What They Think](https://arxiv.org/abs/2505.05410) — Anthropic's behavioural results
+- Yang et al. (EMNLP 2025). [Unveiling Internal Reasoning Modes in LLMs](https://aclanthology.org/2025.emnlp-main.136/) — latent reasoning vs shortcuts
+- Hewitt & Liang (2019). [Designing and Interpreting Probes with Control Tasks](https://arxiv.org/abs/1909.03368) — probe selectivity standard
 
 ## Author
 
-Ashioya Jotham Victor
+Victor Ashioya (Jotham) — [ashioyajotham.github.io](https://ashioyajotham.github.io) · [GitHub](https://github.com/ashioyajotham)
+
+Bluedot Impact Technical AI Safety Programme · MsingiAI
 
 ## License
 
-Read the [LICENSE](LICENSE) file for more information.
+[MIT](LICENSE)

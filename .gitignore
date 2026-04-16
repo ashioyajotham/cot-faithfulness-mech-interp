@@ -190,17 +190,17 @@ checkpoints/
 saved_models/
 model_weights/
 
-# Data files
+# Data files (raw/processed ignored, but datasets/ is tracked)
 data/raw/
 data/processed/
 data/external/
-*.csv
-*.tsv
-*.json
-*.jsonl
 *.parquet
 *.feather
 *.arrow
+# Allow dataset JSON/JSONL files to be tracked
+!datasets/**/*.json
+!datasets/**/*.jsonl
+!datasets/**/*.csv
 
 # Experiment results and logs
 #results/

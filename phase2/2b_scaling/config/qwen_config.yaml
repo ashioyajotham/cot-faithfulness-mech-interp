@@ -1,0 +1,31 @@
+model:
+  name: Qwen/Qwen2.5-Math-7B-Instruct
+  device: cuda
+  dtype: float16
+  fold_ln: false
+  center_writing_weights: false
+  center_unembed: false
+
+patching:
+  strategy: two_pass
+  pass1_components: [hook_attn_out, hook_mlp_out]
+  pass2_top_k_layers: 6
+  pass2_component: hook_z
+  logit_diff_position: last_token
+
+probe:
+  feature_dim: null  # auto-computed from component list
+  test_size: 0.2
+  random_state: 42
+  class_weight: balanced
+  cross_task_eval: true
+
+intervention:
+  n_heads_to_ablate: [1, 2, 3, 4, 5]
+  measure_faithful_preservation: true
+
+compute:
+  provider: modal
+  gpu: A100
+  memory_gb: 40
+  timeout_minutes: 90
