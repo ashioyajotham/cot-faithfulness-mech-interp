@@ -68,7 +68,7 @@ from transformer_lens import HookedTransformer
 
 # Configuration
 device = "cuda" if torch.cuda.is_available() else "cpu"
-RESULTS_DIR = Path("results/phase2c_hybrid")
+RESULTS_DIR = Path(__file__).resolve().parent.parent.parent / "results" / "phase2c_hybrid"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 print(f"Device: {device}")

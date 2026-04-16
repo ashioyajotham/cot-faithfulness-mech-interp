@@ -113,31 +113,32 @@ pyenv install 3.12.0  # or conda install python=3.12
 ### Problem: Custom Module Import Failures
 
 **Symptoms:**
-- `ModuleNotFoundError: No module named 'models.gpt2_wrapper'`
+- `ModuleNotFoundError: No module named 'shared.patching'`
 - Import errors in Jupyter notebooks
 
 **Solutions:**
 
-1. **Check Python Path:**
-   ```python
-   import sys
-   import os
-   sys.path.append(os.path.abspath('../src'))
+1. **Install in Development Mode (recommended):**
+   ```bash
+   pip install -e ".[phase2a]"   # or .[phase2b] for GPU work
    ```
 
-2. **Install in Development Mode:**
-   ```bash
-   pip install -e .
+2. **Manual Path Fix in Notebooks:**
+   ```python
+   import sys
+   from pathlib import Path
+   sys.path.insert(0, str(Path.cwd().parent))  # add repo root
    ```
 
 3. **Verify Directory Structure:**
    ```
    cot-faithfulness-mech-interp/
-   ├── src/
-   │   ├── __init__.py
-   │   ├── models/
-   │   │   ├── __init__.py
-   │   │   └── gpt2_wrapper.py
+   ├── shared/           # model-agnostic utilities (imported by both phases)
+   │   ├── patching/
+   │   ├── probing/
+   │   └── data/
+   ├── phase1/src/       # GPT-2-specific code (frozen)
+   └── phase2/           # Phase 2 experiment code
    ```
 
 ---
@@ -161,14 +162,16 @@ pyenv install 3.12.0  # or conda install python=3.12
 
    ```python
    from pathlib import Path
-   config_path = Path('../config')
+   # Phase 1 configs are in phase1/config/
+   config_path = Path('phase1/config')
+   # Phase 2 configs are in phase2/2a_validation/config/ or phase2/2b_scaling/config/
    assert config_path.exists(), f"Config directory not found: {config_path}"
    ```
 
 3. **Validate YAML Syntax:**
 
    ```bash
-   python -c "import yaml; yaml.safe_load(open('config/model_config.yaml'))"
+   python -c "import yaml; yaml.safe_load(open('phase2/2a_validation/config/validation_config.yaml'))"
    ```
 
 ---

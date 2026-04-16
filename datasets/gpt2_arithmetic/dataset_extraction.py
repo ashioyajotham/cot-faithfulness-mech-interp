@@ -41,8 +41,8 @@ class NumpyEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-# Configuration
-OUTPUT_DIR = Path("dataset_release")
+# Configuration — outputs go alongside this script in datasets/gpt2_arithmetic/
+OUTPUT_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 DATASET_VERSION = "1.0.0"
