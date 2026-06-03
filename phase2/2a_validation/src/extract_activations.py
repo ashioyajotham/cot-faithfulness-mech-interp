@@ -246,10 +246,12 @@ def extract_per_pair_restoration_scores(
         corrupted_tokens = model.to_tokens(corrupted_prompt)
 
         # Get correct/incorrect token IDs
+        # to_tokens returns shape (1, n_tokens); use [0, -1] to get the last
+        # token without squeeze (which would fail on single-token answers).
         correct_str = faithful_examples[pair_idx]["correct_answer"]
         wrong_str = unfaithful_examples[pair_idx]["cot_answer"]
-        correct_id = model.to_tokens(f" {correct_str}", prepend_bos=False).squeeze()[-1].item()
-        incorrect_id = model.to_tokens(f" {wrong_str}", prepend_bos=False).squeeze()[-1].item()
+        correct_id = model.to_tokens(f" {correct_str}", prepend_bos=False)[0, -1].item()
+        incorrect_id = model.to_tokens(f" {wrong_str}", prepend_bos=False)[0, -1].item()
 
         with torch.no_grad():
             clean_logits, clean_cache = model.run_with_cache(clean_tokens)
