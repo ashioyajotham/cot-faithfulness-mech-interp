@@ -150,7 +150,7 @@ def run_experiment(activations_dir: str) -> dict:
     print(f"  FN carry rate:        {carry_results['fn_carry_rate']:.3f}")
     print(f"  Dataset carry rate:   {carry_results['dataset_carry_rate']:.3f}")
     print(f"  Overrepresentation:   {carry_results['overrepresentation_ratio']:.2f}x")
-    print(f"  Hypothesis supported: {'✓' if carry_results['hypothesis_supported'] else '✗'}")
+    print(f"  Hypothesis supported: {'YES' if carry_results['hypothesis_supported'] else 'NO'}")
 
     # ── Magnitude hypothesis test ────────────────────────────────────
     print(f"\n{'='*60}")
@@ -226,7 +226,7 @@ def run_experiment(activations_dir: str) -> dict:
         if gate_pass
         else "No strong cluster — FNs may be irreducible noise"
     )
-    print(f"\n  Gate 2A-G3: {'PASS ✓' if gate_pass else 'INCONCLUSIVE ◌'}")
+    print(f"\n  Gate 2A-G3: {'PASS' if gate_pass else 'INCONCLUSIVE'}")
 
     # ── Save ──────────────────────────────────────────────────────────
     output_path = results_dir / "02_false_negative_analysis_results.json"

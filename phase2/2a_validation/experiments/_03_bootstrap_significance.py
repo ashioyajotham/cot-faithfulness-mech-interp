@@ -204,7 +204,7 @@ def run_experiment(activations_dir: str) -> dict:
         f"L7H6 ranks #1 in {rank_results.get('rank_1_fraction', 0):.1%} of bootstrap samples "
         f"(threshold: {RANK_1_THRESHOLD:.0%})"
     )
-    print(f"  Result: {'PASS ✓' if gate_pass else 'FAIL ✗'}")
+    print(f"  Result: {'PASS' if gate_pass else 'FAIL'}")
     print(f"  {all_results['gate_2a_g2_detail']}")
 
     # ── Save ─────────────────────────────────────────────────────────

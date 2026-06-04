@@ -92,7 +92,7 @@ def run_experiment(activations_dir: str) -> dict:
     print(f"  Control accuracy:     {sel_results['control_acc_mean']:.3f} ± {sel_results['control_acc_std']:.3f}")
     print(f"  Selectivity:          {sel_results['selectivity']:.3f}")
     print(f"  Threshold:            {SELECTIVITY_THRESHOLD}")
-    print(f"  PASS: {'✓' if selective else '✗'}")
+    print(f"  PASS: {'YES' if selective else 'NO'}")
 
     # ── 2. Scramble Ablation ──────────────────────────────────────────
     print(f"\n{'='*60}")
@@ -105,7 +105,7 @@ def run_experiment(activations_dir: str) -> dict:
     print(f"  Original accuracy:    {scramble_results['original_acc']:.3f}")
     print(f"  Scrambled accuracy:   {scramble_results['scrambled_acc_mean']:.3f} ± {scramble_results['scrambled_acc_std']:.3f}")
     print(f"  Degradation:          {scramble_results['degradation']:.3f}")
-    print(f"  Uses structure: {'✓' if scramble_results['degradation'] > 0.05 else '✗'}")
+    print(f"  Uses structure: {'YES' if scramble_results['degradation'] > 0.05 else 'NO'}")
 
     # ── 3. Random-Layer Baseline ──────────────────────────────────────
     print(f"\n{'='*60}")
@@ -118,7 +118,7 @@ def run_experiment(activations_dir: str) -> dict:
     print(f"  Circuit accuracy:     {random_results['circuit_acc']:.3f}")
     print(f"  Random layer accuracy:{random_results['random_layer_acc']:.3f}")
     print(f"  Advantage:            {random_results['advantage']:.3f}")
-    print(f"  Circuit adds value: {'✓' if random_results['advantage'] > 0.05 else '✗'}")
+    print(f"  Circuit adds value: {'YES' if random_results['advantage'] > 0.05 else 'NO'}")
 
     # ── 4. MDL Score ──────────────────────────────────────────────────
     print(f"\n{'='*60}")
@@ -138,7 +138,7 @@ def run_experiment(activations_dir: str) -> dict:
 
     print(f"  Circuit MDL:          {mdl:.1f} bits")
     print(f"  Random-layer MDL:     {mdl_random:.1f} bits")
-    print(f"  Circuit compresses more: {'✓' if mdl < mdl_random else '✗'}")
+    print(f"  Circuit compresses more: {'YES' if mdl < mdl_random else 'NO'}")
 
     # ── 5. Bootstrap CI on probe accuracy ─────────────────────────────
     print(f"\n{'='*60}")
@@ -166,7 +166,7 @@ def run_experiment(activations_dir: str) -> dict:
         if gate_pass
         else "Probe may rely on surface features — reframe claims"
     )
-    print(f"  Result: {'PASS ✓' if gate_pass else 'FAIL ✗'}")
+    print(f"  Result: {'PASS' if gate_pass else 'FAIL'}")
     print(f"  {all_results['gate_2a_g1_detail']}")
 
     # ── Save ──────────────────────────────────────────────────────────

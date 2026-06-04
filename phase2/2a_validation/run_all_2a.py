@@ -129,7 +129,7 @@ def main(
     elapsed = time.time() - start_time
 
     print("\n" + "=" * 70)
-    print("GATE EVALUATION — Phase 2A → Phase 2B")
+    print("GATE EVALUATION -- Phase 2A -> Phase 2B")
     print("=" * 70)
 
     g1 = results_01.get("gate_2a_g1_pass", False)
@@ -142,15 +142,15 @@ def main(
         "2A-G3 (FN cluster found)": {"pass": g3, "detail": results_02.get("gate_2a_g3_detail", "")},
     }
 
-    print(f"\n  Gate 2A-G1 (Probe selective):    {'PASS ✓' if g1 else 'FAIL ✗'}")
-    print(f"  Gate 2A-G2 (L7H6 dominant):      {'PASS ✓' if g2 else ('SKIP' if g2 is None else 'FAIL ✗')}")
-    print(f"  Gate 2A-G3 (FN cluster):          {'PASS ✓' if g3 else 'INCONCLUSIVE ◌'}")
+    print(f"\n  Gate 2A-G1 (Probe selective):    {'PASS' if g1 else 'FAIL'}")
+    print(f"  Gate 2A-G2 (L7H6 dominant):      {'PASS' if g2 else ('SKIP' if g2 is None else 'FAIL')}")
+    print(f"  Gate 2A-G3 (FN cluster):          {'PASS' if g3 else 'INCONCLUSIVE'}")
 
     proceed = g1  # G1 is the critical gate per the proposal
     summary["proceed_to_phase2b"] = proceed
     summary["elapsed_seconds"] = elapsed
 
-    print(f"\n  {'→ PROCEED to Phase 2B ✓' if proceed else '→ REVIEW before proceeding to Phase 2B ⚠'}")
+    print(f"\n  {'>> PROCEED to Phase 2B' if proceed else '>> REVIEW before proceeding to Phase 2B'}")
     print(f"\n  Total time: {elapsed/60:.1f} minutes")
 
     # ── Save summary ─────────────────────────────────────────────────
