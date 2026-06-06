@@ -1,0 +1,31 @@
+{
+  "selectivity": {
+    "selectivity": 0.10975000000000001,
+    "linguistic_acc": 0.925,
+    "control_acc_mean": 0.81525,
+    "control_acc_std": 0.017417663448350343
+  },
+  "scramble_ablation": {
+    "original_acc": 0.925,
+    "scrambled_acc_mean": 0.742,
+    "scrambled_acc_std": 0.010741275529470415,
+    "degradation": 0.18300000000000005
+  },
+  "random_layer_baseline": {
+    "circuit_acc": 0.925,
+    "random_layer_acc": 0.90625,
+    "advantage": 0.018750000000000044
+  },
+  "mdl_score": 615.7403856312039,
+  "mdl_score_random_layer": 553.3075045945593,
+  "bootstrap_ci_accuracy": {
+    "lower": 0.9325,
+    "upper": 0.96125
+  },
+  "bootstrap_ci_roc_auc": {
+    "lower": 0.9799054218569249,
+    "upper": 0.9905735198454382
+  },
+  "gate_2a_g1_pass": true,
+  "gate_2a_g1_detail": "Probe reflects genuine representation structure"
+}
