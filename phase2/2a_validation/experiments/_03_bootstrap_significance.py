@@ -208,9 +208,25 @@ def run_experiment(activations_dir: str) -> dict:
     print(f"  {all_results['gate_2a_g2_detail']}")
 
     # ── Save ─────────────────────────────────────────────────────────
+    def _to_native(obj):
+        """Recursively convert numpy types to native Python for JSON."""
+        if isinstance(obj, dict):
+            return {_to_native(k): _to_native(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [_to_native(v) for v in obj]
+        elif isinstance(obj, (np.integer,)):
+            return int(obj)
+        elif isinstance(obj, (np.floating,)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        return obj
+
     output_path = results_dir / "03_bootstrap_significance_results.json"
     with open(output_path, "w") as f:
-        json.dump(all_results, f, indent=2, default=str)
+        json.dump(_to_native(all_results), f, indent=2, default=str)
     print(f"\nResults saved to {output_path}")
 
     return all_results
