@@ -1,5 +1,5 @@
 """
-HookedTransformer model loader for Qwen2.5-Math-7B and Gemma 3 12B IT.
+HookedTransformer model loader for Phase 2B models.
 
 Centralises model loading, dtype handling, and configuration so that
 the patching and probing code remains model-agnostic.
@@ -35,6 +35,12 @@ MODEL_REGISTRY: Dict[str, ModelSpec] = {
         n_heads=12,
         d_model=768,
         dtype="float32",
+    ),
+    "qwen25-math-1.5b": ModelSpec(
+        hf_name="Qwen/Qwen2.5-Math-1.5B-Instruct",
+        n_layers=28,
+        n_heads=12,
+        d_model=1536,
     ),
     "qwen25-math-7b": ModelSpec(
         hf_name="Qwen/Qwen2.5-Math-7B-Instruct",
