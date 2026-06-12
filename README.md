@@ -184,13 +184,19 @@ python phase2/2a_validation/experiments/_02_false_negative_analysis.py
 python phase2/2a_validation/experiments/_03_bootstrap_significance.py
 ```
 
-### Phase 2B — scaling to large models (GPU required)
+### Phase 2B — scaling to Qwen2.5-Math (GPU required)
 
 ```bash
 pip install -e ".[phase2b]"
-# Run on Modal for remote GPU
-modal run modal_jobs/phase2b_qwen_runner.py
-modal run modal_jobs/phase2b_gemma_runner.py
+
+# Full pipeline: dataset generation + circuit discovery + detection probe + intervention
+python phase2/2b_scaling/colab_runner.py --model qwen25-math-1.5b --device auto
+
+# Or run individual steps
+python phase2/2b_scaling/src/dataset_generator.py --model qwen25-math-1.5b
+python phase2/2b_scaling/experiments/circuit_discovery.py --model qwen25-math-1.5b
+python phase2/2b_scaling/experiments/detection_probe.py --model qwen25-math-1.5b
+python phase2/2b_scaling/experiments/intervention.py --model qwen25-math-1.5b
 ```
 
 ## Research Questions

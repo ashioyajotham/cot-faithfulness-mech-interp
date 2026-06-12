@@ -119,6 +119,27 @@ def main():
     else:
         print(f"\n  Skipping discovery (using {circuit_path})")
 
+    # ── Step 2.5: Detection Probe ────────────────────────────────────
+    print(f"\n{'='*70}")
+    print("STEP 2.5: DETECTION PROBE & DUAL-METRIC ANALYSIS")
+    print(f"{'='*70}")
+
+    detection = _import_from_path(
+        "detection_probe",
+        str(Path(PROJECT_ROOT) / "phase2" / "2b_scaling" / "experiments" / "detection_probe.py"),
+    )
+    detection.run_detection_probe(
+        model_key=args.model,
+        dataset_path=str(dataset_path),
+        circuit_path=str(circuit_path),
+        device=args.device,
+        output_dir=str(RESULTS_DIR),
+    )
+
+    import torch
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     # ── Step 3: Intervention ─────────────────────────────────────────
     print(f"\n{'='*70}")
     print("STEP 3: INTERVENTION")
