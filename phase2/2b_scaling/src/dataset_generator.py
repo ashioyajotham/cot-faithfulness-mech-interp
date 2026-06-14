@@ -14,7 +14,7 @@ Usage::
         --model qwen25-math-1.5b --n-pairs 250 --device auto \\
         --output phase2/2b_scaling/results/dataset.json
 
-Author: Victor Ashioya
+Author: Ashioya Jotham Victor
 """
 
 from __future__ import annotations
@@ -40,6 +40,7 @@ _spec = importlib.util.spec_from_file_location(
     str(Path(__file__).resolve().parent / "model_registry.py"),
 )
 _mod = importlib.util.module_from_spec(_spec)
+sys.modules["model_registry"] = _mod  # Required for @dataclass to resolve
 _spec.loader.exec_module(_mod)
 load_model = _mod.load_model
 

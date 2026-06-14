@@ -39,6 +39,7 @@ _spec = importlib.util.spec_from_file_location(
     str(Path(__file__).resolve().parent.parent / "src" / "model_registry.py"),
 )
 _mod = importlib.util.module_from_spec(_spec)
+sys.modules["model_registry"] = _mod  # Required for @dataclass to resolve
 _spec.loader.exec_module(_mod)
 load_model = _mod.load_model
 

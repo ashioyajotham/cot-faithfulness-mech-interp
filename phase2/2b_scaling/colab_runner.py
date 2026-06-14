@@ -33,6 +33,7 @@ def _import_from_path(module_name: str, file_path: str):
     """Import a module from an absolute path."""
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module  # Required for @dataclass to resolve
     spec.loader.exec_module(module)
     return module
 
