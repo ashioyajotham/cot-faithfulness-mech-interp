@@ -37,13 +37,13 @@ MODEL_REGISTRY: Dict[str, ModelSpec] = {
         dtype="float32",
     ),
     "qwen25-math-1.5b": ModelSpec(
-        hf_name="Qwen/Qwen2.5-Math-1.5B-Instruct",
+        hf_name="Qwen/Qwen2.5-1.5B-Instruct",
         n_layers=28,
         n_heads=12,
         d_model=1536,
     ),
     "qwen25-math-7b": ModelSpec(
-        hf_name="Qwen/Qwen2.5-Math-7B-Instruct",
+        hf_name="Qwen/Qwen2.5-7B-Instruct",
         n_layers=32,
         n_heads=28,
         d_model=3584,
