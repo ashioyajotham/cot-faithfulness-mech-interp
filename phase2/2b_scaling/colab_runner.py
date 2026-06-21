@@ -21,6 +21,25 @@ import sys
 import time
 from pathlib import Path
 
+# ── HF Token setup (Colab secrets or env var) ─────────────────────────
+def _setup_hf_token():
+    """Auto-detect HF token from Colab secrets or environment."""
+    if os.environ.get("HF_TOKEN"):
+        print(f"  HF_TOKEN found in environment")
+        return
+    try:
+        from google.colab import userdata
+        token = userdata.get("HF_TOKEN")
+        if token:
+            os.environ["HF_TOKEN"] = token
+            print(f"  HF_TOKEN loaded from Colab secrets")
+            return
+    except (ImportError, Exception):
+        pass
+    print("  Warning: No HF_TOKEN found. Downloads may be rate-limited.")
+
+_setup_hf_token()
+
 # ── Path setup ────────────────────────────────────────────────────────
 PROJECT_ROOT = os.getcwd()
 sys.path.insert(0, PROJECT_ROOT)
