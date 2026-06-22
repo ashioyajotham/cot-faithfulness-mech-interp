@@ -117,6 +117,8 @@ def main():
 
         # Free model memory for next step
         del model
+        import gc
+        gc.collect()
         import torch
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -144,6 +146,8 @@ def main():
             output_dir=str(RESULTS_DIR),
         )
 
+        import gc
+        gc.collect()
         import torch
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -167,6 +171,8 @@ def main():
         output_dir=str(RESULTS_DIR),
     )
 
+    import gc
+    gc.collect()
     import torch
     if torch.cuda.is_available():
         torch.cuda.empty_cache()

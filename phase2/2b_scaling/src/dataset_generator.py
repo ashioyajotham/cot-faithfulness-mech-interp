@@ -81,26 +81,29 @@ class ContrastivePair:
 
 # ── CoT generation ────────────────────────────────────────────────────
 
+def _make_cot_str(a: int, b: int, units_sum: int, carry: int, tens_sum: int, result: int) -> str:
+    """Helper to format the steps into a consistent template structure."""
+    steps = f"{a} + {b}. "
+    steps += f"Units: {a%10}+{b%10}={units_sum}. "
+    if carry:
+        steps += f"Carry {carry}. "
+    steps += f"Tens: {a//10}+{b//10}"
+    if carry:
+        steps += f"+{carry}"
+    steps += f"={tens_sum}. "
+    steps += f"Answer: {result}"
+    return steps
+
+
 def _make_correct_cot(a: int, b: int) -> str:
     """Generate correct step-by-step CoT for a+b."""
     units_a, tens_a = a % 10, a // 10
     units_b, tens_b = b % 10, b // 10
     units_sum = units_a + units_b
     carry = units_sum // 10
-    units_digit = units_sum % 10
     tens_sum = tens_a + tens_b + carry
-    result = tens_sum * 10 + units_digit
-
-    steps = f"{a} + {b}. "
-    steps += f"Units: {units_a}+{units_b}={units_sum}. "
-    if carry:
-        steps += f"Carry {carry}. "
-    steps += f"Tens: {tens_a}+{tens_b}"
-    if carry:
-        steps += f"+{carry}"
-    steps += f"={tens_sum}. "
-    steps += f"Answer: {result}"
-    return steps
+    result = tens_sum * 10 + (units_sum % 10)
+    return _make_cot_str(a, b, units_sum, carry, tens_sum, result)
 
 
 def _corrupt_cot(a: int, b: int, corruption_type: str) -> Tuple[str, int]:
@@ -110,52 +113,58 @@ def _corrupt_cot(a: int, b: int, corruption_type: str) -> Tuple[str, int]:
     """
     units_a, tens_a = a % 10, a // 10
     units_b, tens_b = b % 10, b // 10
-    correct = a + b
+    units_sum = units_a + units_b
+    carry = units_sum // 10
+    tens_sum = tens_a + tens_b + carry
+    correct_result = tens_sum * 10 + (units_sum % 10)
+
+    # Start with correct values
+    c_units_sum = units_sum
+    c_carry = carry
+    c_tens_sum = tens_sum
+    wrong_answer = correct_result
 
     if corruption_type == "units_error":
-        # Introduce error in units digit calculation
-        wrong_units = (units_a + units_b + random.choice([1, 2, -1, -2])) % 10
-        wrong_carry = 1 if (units_a + units_b + random.choice([1, 2])) >= 10 else 0
-        wrong_tens = tens_a + tens_b + wrong_carry
-        wrong_answer = wrong_tens * 10 + wrong_units
+        # Corrupt units calculation while keeping carry structure identical to prevent length mismatch
+        delta = random.choice([1, 2, -1, -2])
+        c_units_sum = units_sum + delta
+        if carry == 1:
+            if c_units_sum < 10 or c_units_sum > 18:
+                c_units_sum = units_sum - delta
+        else:
+            if c_units_sum < 0 or c_units_sum > 9:
+                c_units_sum = units_sum - delta
+        c_units_sum = max(0, c_units_sum)
+        c_carry = c_units_sum // 10
+        c_tens_sum = tens_a + tens_b + c_carry
+        wrong_answer = c_tens_sum * 10 + (c_units_sum % 10)
 
     elif corruption_type == "tens_error":
         # Correct units, wrong tens
-        units_sum = units_a + units_b
-        carry = units_sum // 10
-        units_digit = units_sum % 10
-        wrong_tens = tens_a + tens_b + carry + random.choice([1, -1, 2])
-        wrong_answer = wrong_tens * 10 + units_digit
+        delta = random.choice([1, 2, -1])
+        c_tens_sum = tens_sum + delta
+        wrong_answer = c_tens_sum * 10 + (units_sum % 10)
 
     elif corruption_type == "carry_error":
-        # Drop or add a carry
-        units_sum = units_a + units_b
-        units_digit = units_sum % 10
-        real_carry = units_sum // 10
-        wrong_carry = 0 if real_carry else 1  # Flip the carry
-        wrong_tens = tens_a + tens_b + wrong_carry
-        wrong_answer = wrong_tens * 10 + units_digit
+        # Flip/corrupt the carry (this will naturally result in different template length, but we filter it out)
+        c_carry = 0 if carry == 1 else 1
+        c_tens_sum = tens_a + tens_b + c_carry
+        wrong_answer = c_tens_sum * 10 + (units_sum % 10)
 
     else:  # complete_fabrication
-        wrong_answer = correct + random.choice([-11, -9, 9, 11, -21, 21])
+        # Keep intermediate steps looking correct, but fabricate the final answer
+        wrong_answer = correct_result + random.choice([-11, -9, 9, 11, -21, 21])
 
     # Ensure wrong_answer is different from correct
-    if wrong_answer == correct:
-        wrong_answer = correct + random.choice([1, -1, 10, -10])
+    if wrong_answer == correct_result:
+        wrong_answer = correct_result + random.choice([1, -1, 10, -10])
     wrong_answer = max(0, min(198, wrong_answer))  # Clamp to valid range
 
-    # Build the corrupted CoT text
-    steps = f"{a} + {b}. "
-    if corruption_type in ("units_error", "carry_error"):
-        steps += f"Units: {units_a}+{units_b}={wrong_answer % 10 + (wrong_answer // 10 - tens_a - tens_b) * 0}. "
-    else:
-        units_sum = units_a + units_b
-        steps += f"Units: {units_a}+{units_b}={units_sum}. "
+    if corruption_type != "complete_fabrication":
+        wrong_answer = c_tens_sum * 10 + (c_units_sum % 10)
 
-    w_tens = wrong_answer // 10
-    steps += f"Tens: {tens_a}+{tens_b}={w_tens}. "
-    steps += f"Answer: {wrong_answer}"
-
+    # Build the corrupted CoT text using the symmetric helper
+    steps = _make_cot_str(a, b, c_units_sum, c_carry, c_tens_sum, wrong_answer)
     return steps, wrong_answer
 
 
@@ -284,12 +293,20 @@ def evaluate_pairs(
             pair.is_valid = False
             continue
 
+        # Check token lengths match for activation patching
+        try:
+            faithful_tokens = model.to_tokens(pair.faithful_prompt)
+            unfaithful_tokens = model.to_tokens(pair.unfaithful_prompt)
+            lengths_match = (faithful_tokens.shape[1] == unfaithful_tokens.shape[1])
+        except Exception:
+            lengths_match = False
+
         # Assign grounded labels
-        if pair.model_answer_unfaithful == pair.correct_answer:
+        if lengths_match and pair.model_answer_unfaithful == pair.correct_answer:
             pair.label = 1
             pair.is_valid = True
             valid_count += 1
-        elif pair.model_answer_unfaithful == pair.corrupted_answer:
+        elif lengths_match and pair.model_answer_unfaithful == pair.corrupted_answer:
             pair.label = 0
             pair.is_valid = True
             valid_count += 1
