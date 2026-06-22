@@ -299,8 +299,13 @@ def run_detection_probe(
     print(f"  Circuit components ({len(circuit_components)}): {circuit_components}")
 
     # Load model
-    print(f"\n  Loading {model_key}...")
-    model = load_model(model_key, device=device)
+    from transformer_lens import HookedTransformer
+    if isinstance(model_key, HookedTransformer):
+        model = model_key
+        model_key = getattr(model.cfg, "model_name", "qwen25-math-1.5b")
+    else:
+        print(f"\n  Loading {model_key}...")
+        model = load_model(model_key, device=device)
 
     # ── Step 1: Extract circuit activations ───────────────────────────
     print(f"\n{'='*60}")

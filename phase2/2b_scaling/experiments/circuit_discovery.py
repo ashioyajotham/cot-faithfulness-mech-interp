@@ -80,8 +80,13 @@ def run_circuit_discovery(
     print(f"  Unfaithful: {sum(1 for p in valid_pairs if p['label'] == 1)}")
 
     # ── Load model ───────────────────────────────────────────────────
-    print(f"\nLoading {model_key}...")
-    model = load_model(model_key, device=device)
+    from transformer_lens import HookedTransformer
+    if isinstance(model_key, HookedTransformer):
+        model = model_key
+        model_key = getattr(model.cfg, "model_name", "qwen25-math-1.5b")
+    else:
+        print(f"\nLoading {model_key}...")
+        model = load_model(model_key, device=device)
     n_layers = model.cfg.n_layers
     n_heads = model.cfg.n_heads
     print(f"  Layers: {n_layers}, Heads: {n_heads}")

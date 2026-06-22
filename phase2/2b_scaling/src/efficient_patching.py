@@ -32,6 +32,7 @@ def _logit_diff(logits, correct_id, incorrect_id, pos=-1):
     return (logits[0, pos, correct_id] - logits[0, pos, incorrect_id]).item()
 
 
+@torch.no_grad()
 def two_pass_patching(
     model: HookedTransformer,
     clean_tokens: torch.Tensor,

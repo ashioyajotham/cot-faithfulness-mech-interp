@@ -254,71 +254,72 @@ def evaluate_pairs(
 
     valid_count = 0
 
-    for i, pair in enumerate(pairs):
-        if i % 25 == 0:
-            print(f"  Evaluating pair {i}/{len(pairs)}...", flush=True)
+    with torch.no_grad():
+        for i, pair in enumerate(pairs):
+            if i % 25 == 0:
+                print(f"  Evaluating pair {i}/{len(pairs)}...", flush=True)
 
-        try:
-            for prompt_type in ["faithful", "unfaithful"]:
-                prompt = pair.faithful_prompt if prompt_type == "faithful" else pair.unfaithful_prompt
+            try:
+                for prompt_type in ["faithful", "unfaithful"]:
+                    prompt = pair.faithful_prompt if prompt_type == "faithful" else pair.unfaithful_prompt
 
-                # Autoregressively generate next few tokens to handle multi-digit number tokenization
-                generated_str = model.generate(
-                    prompt,
-                    max_new_tokens=4,
-                    stop_at_eos=True,
-                    verbose=False,
-                    prepend_bos=False
-                )
+                    # Autoregressively generate next few tokens to handle multi-digit number tokenization
+                    generated_str = model.generate(
+                        prompt,
+                        max_new_tokens=4,
+                        stop_at_eos=True,
+                        verbose=False,
+                        prepend_bos=False
+                    )
 
-                # Extract the completion (only the newly generated text)
-                completion = generated_str[len(prompt):]
+                    # Extract the completion (only the newly generated text)
+                    completion = generated_str[len(prompt):]
 
-                # Extract the first contiguous number from the completion
-                import re
-                match = re.search(r'\d+', completion)
-                if match:
-                    predicted_answer = int(match.group(0))
-                else:
-                    predicted_answer = -1
+                    # Extract the first contiguous number from the completion
+                    import re
+                    match = re.search(r'\d+', completion)
+                    if match:
+                        predicted_answer = int(match.group(0))
+                    else:
+                        predicted_answer = -1
 
-                if prompt_type == "faithful":
-                    pair.model_answer_faithful = predicted_answer
-                else:
-                    pair.model_answer_unfaithful = predicted_answer
+                    if prompt_type == "faithful":
+                        pair.model_answer_faithful = predicted_answer
+                    else:
+                        pair.model_answer_unfaithful = predicted_answer
 
-        except Exception as e:
-            print(f"  ERROR on pair {i}: {e}", flush=True)
-            pair.label = -1
-            pair.is_valid = False
-            continue
+            except Exception as e:
+                print(f"  ERROR on pair {i}: {e}", flush=True)
+                pair.label = -1
+                pair.is_valid = False
+                continue
 
-        # Check token lengths match for activation patching
-        try:
-            faithful_tokens = model.to_tokens(pair.faithful_prompt)
-            unfaithful_tokens = model.to_tokens(pair.unfaithful_prompt)
-            lengths_match = (faithful_tokens.shape[1] == unfaithful_tokens.shape[1])
-        except Exception:
-            lengths_match = False
+            # Check token lengths match for activation patching
+            try:
+                faithful_tokens = model.to_tokens(pair.faithful_prompt)
+                unfaithful_tokens = model.to_tokens(pair.unfaithful_prompt)
+                lengths_match = (faithful_tokens.shape[1] == unfaithful_tokens.shape[1])
+            except Exception:
+                lengths_match = False
 
-        # Assign grounded labels
-        if lengths_match and pair.model_answer_unfaithful == pair.correct_answer:
-            pair.label = 1
-            pair.is_valid = True
-            valid_count += 1
-        elif lengths_match and pair.model_answer_unfaithful == pair.corrupted_answer:
-            pair.label = 0
-            pair.is_valid = True
-            valid_count += 1
-        else:
-            pair.label = -1
-            pair.is_valid = False
+            # Assign grounded labels
+            if lengths_match and pair.model_answer_unfaithful == pair.correct_answer:
+                pair.label = 1
+                pair.is_valid = True
+                valid_count += 1
+            elif lengths_match and pair.model_answer_unfaithful == pair.corrupted_answer:
+                pair.label = 0
+                pair.is_valid = True
+                valid_count += 1
+            else:
+                pair.label = -1
+                pair.is_valid = False
 
-        # Periodic cleanup
-        if i % 50 == 0:
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            # Periodic cleanup
+            if i % 50 == 0:
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
     print(f"  Valid pairs: {valid_count}/{len(pairs)}", flush=True)
     print(f"  Unfaithful (shortcut): {sum(1 for p in pairs if p.label == 1)}", flush=True)

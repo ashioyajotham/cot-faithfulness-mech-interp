@@ -135,8 +135,13 @@ def run_intervention(
     print(f"  Faithful pairs:   {len(faithful)}")
 
     # ── Load model ───────────────────────────────────────────────────
-    print(f"\nLoading {model_key}...")
-    model = load_model(model_key, device=device)
+    from transformer_lens import HookedTransformer
+    if isinstance(model_key, HookedTransformer):
+        model = model_key
+        model_key = getattr(model.cfg, "model_name", "qwen25-math-1.5b")
+    else:
+        print(f"\nLoading {model_key}...")
+        model = load_model(model_key, device=device)
 
     # ── Run ablation experiments ─────────────────────────────────────
     results = {}

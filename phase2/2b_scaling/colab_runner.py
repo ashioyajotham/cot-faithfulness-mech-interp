@@ -91,6 +91,14 @@ def main():
     print(f"Device: {args.device}")
     print(f"Pairs:  {args.n_pairs}")
 
+    # ── Load model once globally ─────────────────────────────────────
+    _registry = _import_from_path(
+        "model_registry",
+        str(Path(PROJECT_ROOT) / "phase2" / "2b_scaling" / "src" / "model_registry.py"),
+    )
+    print(f"\nLoading {args.model}...")
+    model = _registry.load_model(args.model, device=args.device)
+
     # ── Step 1: Dataset Generation ───────────────────────────────────
     dataset_path = RESULTS_DIR / "dataset.json"
 
@@ -103,20 +111,13 @@ def main():
             "dataset_generator",
             str(Path(PROJECT_ROOT) / "phase2" / "2b_scaling" / "src" / "dataset_generator.py"),
         )
-        _registry = _import_from_path(
-            "model_registry",
-            str(Path(PROJECT_ROOT) / "phase2" / "2b_scaling" / "src" / "model_registry.py"),
-        )
 
         problems = dataset_gen.generate_problems(args.n_pairs)
         pairs = dataset_gen.generate_contrastive_pairs(problems)
 
-        model = _registry.load_model(args.model, device=args.device)
         pairs = dataset_gen.evaluate_pairs(model, pairs)
         dataset_gen.save_dataset(pairs, dataset_path)
 
-        # Free model memory for next step
-        del model
         import gc
         gc.collect()
         import torch
@@ -138,7 +139,7 @@ def main():
             str(Path(PROJECT_ROOT) / "phase2" / "2b_scaling" / "experiments" / "circuit_discovery.py"),
         )
         discovery.run_circuit_discovery(
-            model_key=args.model,
+            model_key=model,
             dataset_path=str(dataset_path),
             device=args.device,
             top_k_layers=args.top_k,
@@ -164,7 +165,7 @@ def main():
         str(Path(PROJECT_ROOT) / "phase2" / "2b_scaling" / "experiments" / "detection_probe.py"),
     )
     detection.run_detection_probe(
-        model_key=args.model,
+        model_key=model,
         dataset_path=str(dataset_path),
         circuit_path=str(circuit_path),
         device=args.device,
@@ -187,12 +188,20 @@ def main():
         str(Path(PROJECT_ROOT) / "phase2" / "2b_scaling" / "experiments" / "intervention.py"),
     )
     intervention.run_intervention(
-        model_key=args.model,
+        model_key=model,
         dataset_path=str(dataset_path),
         circuit_path=str(circuit_path),
         device=args.device,
         output_dir=str(RESULTS_DIR),
     )
+
+    # Free model memory at the very end
+    del model
+    import gc
+    gc.collect()
+    import torch
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     # ── Summary ──────────────────────────────────────────────────────
     total_time = time.time() - overall_start
