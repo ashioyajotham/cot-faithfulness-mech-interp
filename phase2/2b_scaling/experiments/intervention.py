@@ -60,30 +60,49 @@ def _parse_component(comp: str) -> Tuple[str, int, Optional[int]]:
         raise ValueError(f"Cannot parse component: {comp}")
 
 
-def _get_model_answer(model: HookedTransformer, tokens: torch.Tensor,
+def _get_model_answer(model: HookedTransformer, prompt: str,
                       fwd_hooks=None) -> Tuple[int, float]:
-    """Get model's predicted answer and its probability.
+    """Get model's predicted answer via autoregressive generation.
+
+    Uses model.generate() for the no-hooks case, and manual greedy
+    decoding with hooks for the ablated case.  Extracts the first
+    integer from the generated text with regex.
 
     Returns (predicted_int, probability).
     """
+    import re
+
+    max_new_tokens = 4
+
     with torch.no_grad():
         if fwd_hooks:
-            logits = model.run_with_hooks(tokens, fwd_hooks=fwd_hooks)
+            # Manual greedy decoding with hooks applied at each step
+            tokens = model.to_tokens(prompt)
+            generated_ids = []
+            for _ in range(max_new_tokens):
+                logits = model.run_with_hooks(tokens, fwd_hooks=fwd_hooks)
+                next_id = logits[0, -1, :].argmax().item()
+                generated_ids.append(next_id)
+                # Check for EOS
+                if hasattr(model.tokenizer, 'eos_token_id') and next_id == model.tokenizer.eos_token_id:
+                    break
+                next_token = torch.tensor([[next_id]], device=tokens.device)
+                tokens = torch.cat([tokens, next_token], dim=1)
+            completion = model.to_string(generated_ids)
         else:
-            logits = model(tokens)
+            # Use model.generate() for clean baseline
+            generated_str = model.generate(
+                prompt,
+                max_new_tokens=max_new_tokens,
+                stop_at_eos=True,
+                verbose=False,
+                prepend_bos=False,
+            )
+            completion = generated_str[len(prompt):]
 
-    last_logits = logits[0, -1, :]
-    probs = torch.softmax(last_logits, dim=-1)
-
-    # Try top-5 tokens for a parseable number
-    top5 = last_logits.topk(5)
-    for tid, prob in zip(top5.indices.tolist(), top5.values.tolist()):
-        s = model.to_string([tid]).strip()
-        try:
-            return int(s), probs[tid].item()
-        except ValueError:
-            continue
-
+    match = re.search(r'\d+', completion)
+    if match:
+        return int(match.group(0)), 1.0
     return -1, 0.0
 
 
@@ -172,13 +191,13 @@ def run_intervention(
         intervention_total = 0
 
         for pair in unfaithful:
-            tokens = model.to_tokens(pair["unfaithful_prompt"])
+            prompt = pair["unfaithful_prompt"]
 
             # Baseline (no ablation)
-            base_answer, base_prob = _get_model_answer(model, tokens)
+            base_answer, base_prob = _get_model_answer(model, prompt)
 
             # Ablated
-            ablated_answer, ablated_prob = _get_model_answer(model, tokens, fwd_hooks=hooks)
+            ablated_answer, ablated_prob = _get_model_answer(model, prompt, fwd_hooks=hooks)
 
             # Success = model shifts from correct to CoT-consistent (wrong)
             if base_answer == pair["correct_answer"]:
@@ -194,10 +213,10 @@ def run_intervention(
         faithful_total = 0
 
         for pair in faithful:
-            tokens = model.to_tokens(pair["faithful_prompt"])
+            prompt = pair["faithful_prompt"]
 
-            base_answer, _ = _get_model_answer(model, tokens)
-            ablated_answer, _ = _get_model_answer(model, tokens, fwd_hooks=hooks)
+            base_answer, _ = _get_model_answer(model, prompt)
+            ablated_answer, _ = _get_model_answer(model, prompt, fwd_hooks=hooks)
 
             if base_answer == pair["correct_answer"]:
                 faithful_total += 1
