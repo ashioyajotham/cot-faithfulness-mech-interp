@@ -22,23 +22,31 @@ import time
 from pathlib import Path
 
 # ── HF Token setup (Colab secrets or env var) ─────────────────────────
-def _setup_hf_token():
-    """Auto-detect HF token from Colab secrets or environment."""
-    if os.environ.get("HF_TOKEN"):
-        print(f"  HF_TOKEN found in environment")
+def _setup_hf_token(cli_token: str = None):
+    """Auto-detect HF token from CLI, environment, or Colab secrets."""
+    if cli_token:
+        os.environ["HF_TOKEN"] = cli_token
+        print("  HF_TOKEN loaded from command line argument")
         return
+
+    if os.environ.get("HF_TOKEN"):
+        print("  HF_TOKEN found in environment")
+        return
+
     try:
         from google.colab import userdata
         token = userdata.get("HF_TOKEN")
         if token:
             os.environ["HF_TOKEN"] = token
-            print(f"  HF_TOKEN loaded from Colab secrets")
+            print("  HF_TOKEN loaded from Colab secrets")
             return
     except (ImportError, Exception):
         pass
-    print("  Warning: No HF_TOKEN found. Downloads may be rate-limited.")
 
-_setup_hf_token()
+    print("  Warning: No HF_TOKEN found. Downloads may fail or be rate-limited.")
+    print("  To fix this in Colab, run this in a python cell before running the script:")
+    print("      import os; from google.colab import userdata; os.environ['HF_TOKEN'] = userdata.get('HF_TOKEN')")
+
 
 # ── Path setup ────────────────────────────────────────────────────────
 PROJECT_ROOT = os.getcwd()
@@ -68,7 +76,10 @@ def main():
     parser.add_argument("--top-k", type=int, default=6)
     parser.add_argument("--skip-dataset", action="store_true")
     parser.add_argument("--skip-discovery", action="store_true")
+    parser.add_argument("--hf-token", default=None, help="Hugging Face API token")
     args = parser.parse_args()
+
+    _setup_hf_token(args.hf_token)
 
     overall_start = time.time()
 
