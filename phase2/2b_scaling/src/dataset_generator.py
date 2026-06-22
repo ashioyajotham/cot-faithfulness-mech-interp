@@ -240,7 +240,7 @@ def evaluate_pairs(
     # Print GPU info if available
     if torch.cuda.is_available():
         mem = torch.cuda.memory_allocated() / 1e9
-        total = torch.cuda.get_device_properties(0).total_mem / 1e9
+        total = torch.cuda.get_device_properties(0).total_memory / 1e9
         print(f"  GPU memory: {mem:.1f}/{total:.1f} GB", flush=True)
 
     valid_count = 0
