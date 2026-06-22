@@ -76,6 +76,7 @@ def main():
     parser.add_argument("--top-k", type=int, default=6)
     parser.add_argument("--skip-dataset", action="store_true")
     parser.add_argument("--skip-discovery", action="store_true")
+    parser.add_argument("--skip-probe", action="store_true")
     parser.add_argument("--hf-token", default=None, help="Hugging Face API token")
     args = parser.parse_args()
 
@@ -156,27 +157,31 @@ def main():
         print(f"\n  Skipping discovery (using {circuit_path})")
 
     # ── Step 2.5: Detection Probe ────────────────────────────────────
-    print(f"\n{'='*70}")
-    print("STEP 2.5: DETECTION PROBE & DUAL-METRIC ANALYSIS")
-    print(f"{'='*70}")
+    if not args.skip_probe:
 
-    detection = _import_from_path(
-        "detection_probe",
-        str(Path(PROJECT_ROOT) / "phase2" / "2b_scaling" / "experiments" / "detection_probe.py"),
-    )
-    detection.run_detection_probe(
-        model_key=model,
-        dataset_path=str(dataset_path),
-        circuit_path=str(circuit_path),
-        device=args.device,
-        output_dir=str(RESULTS_DIR),
-    )
+        print(f"\n{'='*70}")
+        print("STEP 2.5: DETECTION PROBE & DUAL-METRIC ANALYSIS")
+        print(f"{'='*70}")
 
-    import gc
-    gc.collect()
-    import torch
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+        detection = _import_from_path(
+            "detection_probe",
+            str(Path(PROJECT_ROOT) / "phase2" / "2b_scaling" / "experiments" / "detection_probe.py"),
+        )
+        detection.run_detection_probe(
+            model_key=model,
+            dataset_path=str(dataset_path),
+            circuit_path=str(circuit_path),
+            device=args.device,
+            output_dir=str(RESULTS_DIR),
+        )
+
+        import gc
+        gc.collect()
+        import torch
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    else:
+        print(f"\n  Skipping probe (using existing results)")
 
     # ── Step 3: Intervention ─────────────────────────────────────────
     print(f"\n{'='*70}")
