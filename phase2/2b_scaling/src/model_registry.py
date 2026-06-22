@@ -86,6 +86,11 @@ def load_model(
 
     torch_dtype = {"float16": torch.float16, "float32": torch.float32, "bfloat16": torch.bfloat16}[dtype]
 
+    # Memory optimizations to prevent CPU RAM OOM on Colab (12.7 GB system RAM limit)
+    extra_kwargs = {}
+    if device == "cuda" or (device == "auto" and torch.cuda.is_available()):
+        extra_kwargs["device_map"] = "auto"
+
     model = HookedTransformer.from_pretrained(
         hf_name,
         device=device,
@@ -93,6 +98,8 @@ def load_model(
         fold_ln=fold_ln,
         center_writing_weights=center_writing_weights,
         center_unembed=center_unembed,
+        low_cpu_mem_usage=True,
+        **extra_kwargs
     )
     model.eval()
     return model
