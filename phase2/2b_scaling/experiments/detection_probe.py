@@ -29,6 +29,8 @@ import torch
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.model_selection import StratifiedKFold
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -165,6 +167,86 @@ def train_probe(X: np.ndarray, y: np.ndarray, n_splits: int = 5):
         "fold_results": fold_results,
         "probe": final_probe,
     }
+
+
+def train_mlp_probe(X: np.ndarray, y: np.ndarray, n_splits: int = 5):
+    """Train 2-layer MLP probe with cross-validation.
+
+    Tests whether faithfulness signal is non-linearly encoded.
+    Returns dict with accuracy, AUC, and per-fold results.
+    """
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    fold_results = []
+
+    for fold, (train_idx, test_idx) in enumerate(skf.split(X, y)):
+        X_train, X_test = X[train_idx], X[test_idx]
+        y_train, y_test = y[train_idx], y[test_idx]
+
+        # Standardize features for MLP stability
+        scaler = StandardScaler()
+        X_train_s = scaler.fit_transform(X_train)
+        X_test_s = scaler.transform(X_test)
+
+        mlp = MLPClassifier(
+            hidden_layer_sizes=(128, 64),
+            max_iter=500,
+            early_stopping=True,
+            validation_fraction=0.15,
+            random_state=42,
+            learning_rate_init=0.001,
+        )
+        mlp.fit(X_train_s, y_train)
+
+        y_pred = mlp.predict(X_test_s)
+        y_prob = mlp.predict_proba(X_test_s)[:, 1]
+
+        acc = accuracy_score(y_test, y_pred)
+        try:
+            auc = roc_auc_score(y_test, y_prob)
+        except ValueError:
+            auc = 0.5
+
+        fold_results.append({"fold": fold, "accuracy": acc, "auc": auc})
+
+    mean_acc = np.mean([r["accuracy"] for r in fold_results])
+    mean_auc = np.mean([r["auc"] for r in fold_results])
+
+    return {
+        "mean_accuracy": float(mean_acc),
+        "mean_auc": float(mean_auc),
+        "fold_results": fold_results,
+    }
+
+
+def extract_multi_layer_activations(
+    model,
+    pairs: List[dict],
+    layers: List[int],
+    position: int = -1,
+) -> np.ndarray:
+    """Extract residual stream activations from multiple layers.
+
+    Concatenates `hook_resid_post` from each specified layer at the
+    given position.  Returns [n_pairs, n_layers * d_model].
+    """
+    all_features = []
+    hook_names = [f"blocks.{l}.hook_resid_post" for l in layers]
+
+    for i, pair in enumerate(pairs):
+        if i % 50 == 0:
+            print(f"  Extracting multi-layer activations: {i}/{len(pairs)}")
+        tokens = model.to_tokens(pair["unfaithful_prompt"])
+        with torch.no_grad():
+            _, cache = model.run_with_cache(
+                tokens, names_filter=lambda n: n in hook_names
+            )
+        feats = []
+        for hn in hook_names:
+            feats.append(cache[hn][0, position, :].cpu().numpy())
+        all_features.append(np.concatenate(feats))
+        del cache
+
+    return np.array(all_features)
 
 
 # ── Dual-metric analysis ─────────────────────────────────────────────
@@ -394,6 +476,63 @@ def run_detection_probe(
     print(f"\n  Circuit vs best random layer gap: {gap:.3f}")
     print(f"  Signal is {'LOCALIZED' if gap > 0.05 else 'DISTRIBUTED'}")
 
+    # ── Step 6: MLP probe on circuit activations ─────────────────────
+    print(f"\n{'='*60}")
+    print("STEP 6: MLP PROBE (NON-LINEAR) ON CIRCUIT ACTIVATIONS")
+    print(f"{'='*60}")
+
+    mlp_result = train_mlp_probe(X, y)
+    print(f"\n  MLP cross-val accuracy: {mlp_result['mean_accuracy']:.3f}")
+    print(f"  MLP cross-val AUC:      {mlp_result['mean_auc']:.3f}")
+    print(f"  Linear AUC:             {probe_result['mean_auc']:.3f}")
+    mlp_gain = mlp_result['mean_auc'] - probe_result['mean_auc']
+    print(f"  MLP gain over linear:   {mlp_gain:+.3f}")
+    if mlp_gain > 0.05:
+        print("  => Signal IS non-linearly encoded in circuit heads")
+    else:
+        print("  => No significant non-linear gain")
+
+    # ── Step 7: Full-stream probe (multi-layer residual) ─────────────
+    print(f"\n{'='*60}")
+    print("STEP 7: FULL-STREAM PROBE (MULTI-LAYER RESIDUAL)")
+    print(f"{'='*60}")
+
+    # Use 4 strategically spaced layers for the full-stream probe
+    stream_layers = sorted(set([
+        0,                    # input encoding
+        n_layers // 3,        # early processing
+        2 * n_layers // 3,    # mid-late processing
+        n_layers - 1,         # final layer
+    ]))
+    print(f"  Layers for full-stream probe: {stream_layers}")
+    print(f"  Feature dim: {len(stream_layers)} × {model.cfg.d_model} = {len(stream_layers) * model.cfg.d_model}")
+
+    X_stream = extract_multi_layer_activations(model, valid_pairs, stream_layers)
+    print(f"  Full-stream feature matrix: {X_stream.shape}")
+
+    stream_linear = train_probe(X_stream, y)
+    stream_mlp = train_mlp_probe(X_stream, y)
+
+    print(f"\n  Full-stream linear AUC:  {stream_linear['mean_auc']:.3f}")
+    print(f"  Full-stream MLP AUC:     {stream_mlp['mean_auc']:.3f}")
+    print(f"  Circuit linear AUC:      {probe_result['mean_auc']:.3f}")
+    print(f"  Circuit MLP AUC:         {mlp_result['mean_auc']:.3f}")
+
+    full_stream_results = {
+        "layers": stream_layers,
+        "feature_dim": int(X_stream.shape[1]),
+        "linear": {
+            "accuracy": stream_linear["mean_accuracy"],
+            "auc": stream_linear["mean_auc"],
+            "fold_results": stream_linear["fold_results"],
+        },
+        "mlp": {
+            "accuracy": stream_mlp["mean_accuracy"],
+            "auc": stream_mlp["mean_auc"],
+            "fold_results": stream_mlp["fold_results"],
+        },
+    }
+
     # ── Save results ─────────────────────────────────────────────────
     output = {
         "model": model_key,
@@ -404,6 +543,13 @@ def run_detection_probe(
             "auc": probe_result["mean_auc"],
             "fold_results": probe_result["fold_results"],
         },
+        "mlp_probe": {
+            "accuracy": mlp_result["mean_accuracy"],
+            "auc": mlp_result["mean_auc"],
+            "fold_results": mlp_result["fold_results"],
+            "gain_over_linear": float(mlp_gain),
+        },
+        "full_stream_probe": full_stream_results,
         "dual_metric": {
             "probe_importance": probe_importance,
             "restoration_importance": restoration_importance,

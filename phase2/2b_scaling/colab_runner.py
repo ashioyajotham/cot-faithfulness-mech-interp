@@ -52,8 +52,7 @@ def _setup_hf_token(cli_token: str = None):
 PROJECT_ROOT = os.getcwd()
 sys.path.insert(0, PROJECT_ROOT)
 
-RESULTS_DIR = Path(PROJECT_ROOT) / "phase2" / "2b_scaling" / "results"
-RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+RESULTS_BASE = Path(PROJECT_ROOT) / "phase2" / "2b_scaling" / "results"
 
 
 def _import_from_path(module_name: str, file_path: str):
@@ -84,6 +83,10 @@ def main():
 
     overall_start = time.time()
 
+    # Model-specific results directory
+    RESULTS_DIR = RESULTS_BASE / args.model
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
     print("=" * 70)
     print("PHASE 2B -- FULL PIPELINE")
     print("When Models Lie to Please: Mechanistic Detection of Unfaithful CoT")
@@ -91,6 +94,7 @@ def main():
     print(f"\nModel:  {args.model}")
     print(f"Device: {args.device}")
     print(f"Pairs:  {args.n_pairs}")
+    print(f"Results: {RESULTS_DIR}")
 
     # ── Load model once globally ─────────────────────────────────────
     _registry = _import_from_path(
