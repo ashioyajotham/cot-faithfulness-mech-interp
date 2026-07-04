@@ -86,14 +86,19 @@ def load_model(
 
     torch_dtype = {"float16": torch.float16, "float32": torch.float32, "bfloat16": torch.bfloat16}[dtype]
 
-    # Memory optimizations to prevent CPU RAM OOM on Colab (12.7 GB system RAM limit)
+    # For large models (d_model > 2048 ~= 7B+), load and process weights
+    # on CPU first, then move to GPU.  TransformerLens's fold_value_biases
+    # clones the entire state dict, which doubles VRAM and OOMs on A100-40GB.
+    is_large = spec is not None and spec.d_model > 2048
+    load_device = "cpu" if (is_large and device == "cuda") else device
+
     extra_kwargs = {}
-    if device == "cuda" or (device == "auto" and torch.cuda.is_available()):
+    if not is_large and (device == "cuda"):
         extra_kwargs["device_map"] = "auto"
 
     model = HookedTransformer.from_pretrained(
         hf_name,
-        device=device,
+        device=load_device,
         dtype=torch_dtype,
         fold_ln=fold_ln,
         center_writing_weights=center_writing_weights,
@@ -101,5 +106,11 @@ def load_model(
         low_cpu_mem_usage=True,
         **extra_kwargs
     )
+
+    # Move to GPU after weight processing is complete
+    if is_large and device == "cuda":
+        print(f"  Moving model to {device}...")
+        model = model.to(device)
+
     model.eval()
     return model
