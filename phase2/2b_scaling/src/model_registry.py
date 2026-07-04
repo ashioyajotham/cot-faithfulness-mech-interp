@@ -44,7 +44,7 @@ MODEL_REGISTRY: Dict[str, ModelSpec] = {
     ),
     "qwen25-math-7b": ModelSpec(
         hf_name="Qwen/Qwen2.5-7B-Instruct",
-        n_layers=32,
+        n_layers=28,
         n_heads=28,
         d_model=3584,
     ),

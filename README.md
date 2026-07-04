@@ -10,7 +10,7 @@ The long-term safety case: if models develop separable circuits for "produce a C
 |-------|-------------|--------|
 | **Phase 1** | GPT-2 Small baseline — circuit discovery, detection probe, dataset | **Complete** (`v1.0.0`) |
 | **Phase 2A** | Validate Phase 1 claims — probe selectivity, error analysis, bootstrap CI | **Complete** |
-| **Phase 2B** | Scale to Qwen2.5-1.5B — circuit discovery, dual-metric, intervention | **Complete** |
+| **Phase 2B** | Scale to Qwen2.5-1.5B and 7B — circuit discovery, dual-metric, intervention, MLP probes | **Complete** |
 
 ## Key Results
 
@@ -48,34 +48,54 @@ Additional findings:
 
 Phase 2A results are at `phase2/2a_validation/results/`.
 
-### Phase 2B — Cross-Architecture Replication (Qwen2.5-1.5B-Instruct)
+### Phase 2B — Cross-Architecture & Cross-Scale Replication
 
-Full pipeline ran on Google Colab T4 in ~23 minutes. Key results:
+Full pipeline ran on Qwen2.5-1.5B-Instruct (Colab T4, 50 min) and Qwen2.5-7B-Instruct (Colab A100, 64 min).
 
-| Finding | GPT-2 Small (Phase 1/2A) | Qwen 1.5B (Phase 2B) | Replicates? |
-|---------|-------------------------|----------------------|-------------|
-| Layer 0 attn is top layer component | ✅ L0 (0.721) | ✅ L0 (0.977) | **YES** |
-| Dual-metric divergence | ✅ L7H6 ≠ L0MLP | ✅ L22H9 ≠ L3H5 | **YES** |
-| Distributed signal | ✅ Layer 8 beats circuit | ✅ Layer 21 beats circuit | **YES** |
-| Probe AUC | 0.98 (strong) | 0.38 (weak) | **Different** |
-| Intervention success | N/A (GPT-2 can't add) | 6.4% max | **New** |
-| Faithful preservation under ablation | N/A | 85–100% | **New** |
+#### Three-Scale Comparison
 
-**Central finding — dual-metric divergence is architecture-general**: the component that best *discriminates* faithful from unfaithful (probe coefficient) is never the component with the largest *causal effect* (restoration score). This holds across GPT-2 and Qwen, suggesting it is a fundamental property of how transformers process chain-of-thought.
+| Finding | GPT-2 (124M) | Qwen 1.5B | Qwen 7B |
+|---------|:------------:|:---------:|:-------:|
+| Layer 0 attn is #1 layer | ✅ 0.721 | ✅ 1.023 | ✅ **0.944** |
+| Dual-metric divergence | L7H6 ≠ L0MLP | L20H9 ≠ L20H5 | **L23H12 ≠ L23H7** |
+| Distributed signal | Layer 8 > circuit | Layer 21 > circuit | **Layer 14 > circuit** |
+| Circuit probe AUC | 0.98 | 0.617 | **0.536** |
+| Selectivity | 0.110 ✅ | 0.069 ✅ | **0.037** ✅ |
+| Best intervention | N/A | 2.6% | **3.4%** |
+| Faithful preservation | N/A | 95.3% | **97.8–100%** |
+| Unfaithful ratio | ~50% | 60% | **69%** |
 
-**Intervention detail** (zero-ablation of top shortcut heads on unfaithful pairs):
+#### Six Scaling Findings
+
+1. **Layer 0 attention is universal** — top layer component in all three models (the "input bottleneck")
+2. **Linear probes degrade monotonically** — AUC: 0.98 → 0.617 → 0.536 as models scale
+3. **Dual-metric divergence is universal** — top discriminative ≠ top causal in all three models
+4. **Shortcut circuits consolidate** — 7B concentrates ALL 15 top heads in Layer 23
+5. **Larger models are more unfaithful** — 69% unfaithful at 7B vs 60% at 1.5B
+6. **Faithful preservation improves with scale** — dual-circuit separation becomes cleaner
+
+#### Probe Architecture Comparison (Steps G+H)
+
+| Probe Type | 1.5B AUC | 7B AUC | Notes |
+|-----------|----------|--------|-------|
+| Circuit linear | 0.617 | 0.536 | Degrades with scale |
+| Circuit MLP | 0.532 | 0.527 | No non-linear gain |
+| Full-stream linear | **0.660** | 0.579 | Best at 1.5B |
+| Full-stream MLP | 0.561 | **0.616** | Best at 7B — non-linear encoding emerges |
+
+**Key insight**: Full-stream MLP is the *only* probe that improves from 1.5B → 7B. The faithfulness signal becomes non-linearly distributed across the residual stream as models scale.
+
+#### Intervention Detail (7B)
 
 | Ablation Set | Success Rate | Faithful Preserved |
 |--------------|-------------|-------------------|
-| L3H5 | 0.0% | 97.1% |
-| +L14H9 | **6.4%** | 85.3% |
-| +L13H10 | 2.4% | 97.1% |
-| +L13H11 | 6.2% | 100% |
-| +L16H1 | 4.3% | 97.2% |
+| L23H7 | 0.6% | 100% |
+| +L23H15 | 1.8% | 100% |
+| +L23H16 | 3.1% | 100% |
+| +L23H9 | 2.9% | 98.8% |
+| +L23H25 | **3.4%** | 97.8% |
 
-Intervention success is low but non-zero, confirming the shortcut circuit is real but highly distributed. Faithful reasoning is preserved at 85–100%, validating selective disruption.
-
-Phase 2B results are at `phase2/2b_scaling/results/`.
+Phase 2B results are at `phase2/2b_scaling/results/qwen25-math-1.5b/` and `phase2/2b_scaling/results/qwen25-math-7b/`.
 
 ## Method Overview
 
@@ -249,9 +269,10 @@ python phase2/2b_scaling/experiments/intervention.py --model qwen25-math-1.5b
 
 | RQ | Question | Answer |
 |----|----------|--------|
-| **RQ4** | Does the same circuit structure emerge in Qwen? | **Partial** — Layer 0 attention is the top layer in both. Head-level components differ (expected for different architectures), but the dual-metric divergence pattern replicates. |
-| **RQ5** | Does ablating shortcut heads change model behaviour? | **Yes, weakly** — max 6.4% intervention success (3/47 unfaithful pairs flip). Shortcut circuit is distributed, not sparse. |
-| **RQ6** | Is faithful reasoning preserved under shortcut ablation? | **Yes** — 85–100% preservation rate across all ablation sets. Dual-circuit hypothesis validated. |
+| **RQ4** | Does the same circuit structure emerge across scales? | **Yes** — Layer 0 attention is top layer in all three models. Dual-metric divergence replicates across GPT-2, 1.5B, and 7B. Circuit head positions differ but structural patterns are universal. |
+| **RQ5** | Does ablating shortcut heads change model behaviour? | **Yes, weakly** — max 3.4% at 7B (6/174 unfaithful pairs flip). Shortcut circuit is highly distributed; at 7B, all top heads are in Layer 23 but ablating 5/28 only shifts 3.4%. |
+| **RQ6** | Is faithful reasoning preserved under shortcut ablation? | **Yes, increasingly so** — 97.8–100% at 7B (up from 95.3% at 1.5B). Dual-circuit separation is cleaner at scale. |
+| **RQ7** | Do linear probes scale? | **No** — AUC degrades monotonically: 0.98 → 0.617 → 0.536. Full-stream MLP probe is the only method that improves at 7B (AUC 0.616). |
 
 ## The `shared/` Library
 
