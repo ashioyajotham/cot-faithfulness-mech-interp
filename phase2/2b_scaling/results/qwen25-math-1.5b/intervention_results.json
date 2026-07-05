@@ -1,83 +1,83 @@
 {
   "model": "Qwen2.5-1.5B-Instruct",
   "target_components": [
+    "L20H5",
+    "L19H4",
+    "L19H11",
     "L3H5",
-    "L14H9",
-    "L13H10",
-    "L13H11",
-    "L16H1"
+    "L26H9"
   ],
   "results": {
-    "L3H5": {
+    "L20H5": {
       "components": [
-        "L3H5"
+        "L20H5"
       ],
       "n_components": 1,
-      "intervention_success": 0,
-      "intervention_total": 44,
-      "success_rate": 0.0,
-      "faithful_preserved": 34,
-      "faithful_total": 35,
-      "preservation_rate": 0.9714285714285714
+      "intervention_success": 1,
+      "intervention_total": 88,
+      "success_rate": 0.011363636363636364,
+      "faithful_preserved": 65,
+      "faithful_total": 66,
+      "preservation_rate": 0.9848484848484849
     },
-    "L3H5+L14H9": {
+    "L20H5+L19H4": {
       "components": [
-        "L3H5",
-        "L14H9"
+        "L20H5",
+        "L19H4"
       ],
       "n_components": 2,
-      "intervention_success": 3,
-      "intervention_total": 47,
-      "success_rate": 0.06382978723404255,
-      "faithful_preserved": 29,
-      "faithful_total": 34,
-      "preservation_rate": 0.8529411764705882
+      "intervention_success": 2,
+      "intervention_total": 78,
+      "success_rate": 0.02564102564102564,
+      "faithful_preserved": 61,
+      "faithful_total": 64,
+      "preservation_rate": 0.953125
     },
-    "L3H5+L14H9+L13H10": {
+    "L20H5+L19H4+L19H11": {
       "components": [
-        "L3H5",
-        "L14H9",
-        "L13H10"
+        "L20H5",
+        "L19H4",
+        "L19H11"
       ],
       "n_components": 3,
       "intervention_success": 1,
-      "intervention_total": 42,
-      "success_rate": 0.023809523809523808,
-      "faithful_preserved": 34,
-      "faithful_total": 35,
-      "preservation_rate": 0.9714285714285714
+      "intervention_total": 87,
+      "success_rate": 0.011494252873563218,
+      "faithful_preserved": 63,
+      "faithful_total": 64,
+      "preservation_rate": 0.984375
     },
-    "L3H5+L14H9+L13H10+L13H11": {
+    "L20H5+L19H4+L19H11+L3H5": {
       "components": [
-        "L3H5",
-        "L14H9",
-        "L13H10",
-        "L13H11"
+        "L20H5",
+        "L19H4",
+        "L19H11",
+        "L3H5"
       ],
       "n_components": 4,
-      "intervention_success": 3,
-      "intervention_total": 48,
-      "success_rate": 0.0625,
-      "faithful_preserved": 37,
-      "faithful_total": 37,
-      "preservation_rate": 1.0
+      "intervention_success": 0,
+      "intervention_total": 78,
+      "success_rate": 0.0,
+      "faithful_preserved": 64,
+      "faithful_total": 66,
+      "preservation_rate": 0.9696969696969697
     },
-    "L3H5+L14H9+L13H10+L13H11+L16H1": {
+    "L20H5+L19H4+L19H11+L3H5+L26H9": {
       "components": [
+        "L20H5",
+        "L19H4",
+        "L19H11",
         "L3H5",
-        "L14H9",
-        "L13H10",
-        "L13H11",
-        "L16H1"
+        "L26H9"
       ],
       "n_components": 5,
-      "intervention_success": 2,
-      "intervention_total": 47,
-      "success_rate": 0.0425531914893617,
-      "faithful_preserved": 35,
-      "faithful_total": 36,
-      "preservation_rate": 0.9722222222222222
+      "intervention_success": 1,
+      "intervention_total": 89,
+      "success_rate": 0.011235955056179775,
+      "faithful_preserved": 56,
+      "faithful_total": 59,
+      "preservation_rate": 0.9491525423728814
     }
   },
-  "elapsed_seconds": 512.7000508308411
+  "elapsed_seconds": 1080.720524072647
 }

@@ -1,4 +1,4 @@
-# When Models Lie to Please: Mechanistic Analysis of Chain-of-Thought
+# Mechanistic Analysis of Chain-of-Thought
 
 This project investigates whether chain-of-thought (CoT) reasoning in language models is *faithful* — whether the model's stated reasoning process reflects its actual internal computation. We use mechanistic interpretability techniques (activation patching, linear probes, steering vectors) to identify separable *faithful* vs *shortcut* circuits in transformers, and build detectors that work at the activation level.
 
