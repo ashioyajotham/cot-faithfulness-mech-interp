@@ -1,0 +1,83 @@
+{
+  "model": "Qwen2.5-7B-Instruct",
+  "target_components": [
+    "L23H7",
+    "L23H15",
+    "L23H16",
+    "L23H9",
+    "L23H25"
+  ],
+  "results": {
+    "L23H7": {
+      "components": [
+        "L23H7"
+      ],
+      "n_components": 1,
+      "intervention_success": 1,
+      "intervention_total": 162,
+      "success_rate": 0.006172839506172839,
+      "faithful_preserved": 89,
+      "faithful_total": 89,
+      "preservation_rate": 1.0
+    },
+    "L23H7+L23H15": {
+      "components": [
+        "L23H7",
+        "L23H15"
+      ],
+      "n_components": 2,
+      "intervention_success": 3,
+      "intervention_total": 166,
+      "success_rate": 0.018072289156626505,
+      "faithful_preserved": 89,
+      "faithful_total": 89,
+      "preservation_rate": 1.0
+    },
+    "L23H7+L23H15+L23H16": {
+      "components": [
+        "L23H7",
+        "L23H15",
+        "L23H16"
+      ],
+      "n_components": 3,
+      "intervention_success": 5,
+      "intervention_total": 163,
+      "success_rate": 0.03067484662576687,
+      "faithful_preserved": 88,
+      "faithful_total": 88,
+      "preservation_rate": 1.0
+    },
+    "L23H7+L23H15+L23H16+L23H9": {
+      "components": [
+        "L23H7",
+        "L23H15",
+        "L23H16",
+        "L23H9"
+      ],
+      "n_components": 4,
+      "intervention_success": 5,
+      "intervention_total": 171,
+      "success_rate": 0.029239766081871343,
+      "faithful_preserved": 85,
+      "faithful_total": 86,
+      "preservation_rate": 0.9883720930232558
+    },
+    "L23H7+L23H15+L23H16+L23H9+L23H25": {
+      "components": [
+        "L23H7",
+        "L23H15",
+        "L23H16",
+        "L23H9",
+        "L23H25"
+      ],
+      "n_components": 5,
+      "intervention_success": 6,
+      "intervention_total": 174,
+      "success_rate": 0.034482758620689655,
+      "faithful_preserved": 87,
+      "faithful_total": 89,
+      "preservation_rate": 0.9775280898876404
+    }
+  },
+  "elapsed_seconds": 1490.5029106140137
+}
