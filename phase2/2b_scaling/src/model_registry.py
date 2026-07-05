@@ -48,6 +48,12 @@ MODEL_REGISTRY: Dict[str, ModelSpec] = {
         n_heads=28,
         d_model=3584,
     ),
+    "gemma2-2b": ModelSpec(
+        hf_name="google/gemma-2-2b-it",
+        n_layers=26,
+        n_heads=8,
+        d_model=2304,
+    ),
     "gemma3-12b-it": ModelSpec(
         hf_name="google/gemma-3-12b-it",
         n_layers=48,
