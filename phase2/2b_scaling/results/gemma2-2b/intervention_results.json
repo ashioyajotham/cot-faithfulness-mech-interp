@@ -1,0 +1,83 @@
+{
+  "model": "gemma-2-2b-it",
+  "target_components": [
+    "L20H7",
+    "L25H1",
+    "L25H0",
+    "L23H7",
+    "L6H1"
+  ],
+  "results": {
+    "L20H7": {
+      "components": [
+        "L20H7"
+      ],
+      "n_components": 1,
+      "intervention_success": 1,
+      "intervention_total": 29,
+      "success_rate": 0.034482758620689655,
+      "faithful_preserved": 14,
+      "faithful_total": 15,
+      "preservation_rate": 0.9333333333333333
+    },
+    "L20H7+L25H1": {
+      "components": [
+        "L20H7",
+        "L25H1"
+      ],
+      "n_components": 2,
+      "intervention_success": 0,
+      "intervention_total": 29,
+      "success_rate": 0.0,
+      "faithful_preserved": 15,
+      "faithful_total": 17,
+      "preservation_rate": 0.8823529411764706
+    },
+    "L20H7+L25H1+L25H0": {
+      "components": [
+        "L20H7",
+        "L25H1",
+        "L25H0"
+      ],
+      "n_components": 3,
+      "intervention_success": 1,
+      "intervention_total": 31,
+      "success_rate": 0.03225806451612903,
+      "faithful_preserved": 16,
+      "faithful_total": 16,
+      "preservation_rate": 1.0
+    },
+    "L20H7+L25H1+L25H0+L23H7": {
+      "components": [
+        "L20H7",
+        "L25H1",
+        "L25H0",
+        "L23H7"
+      ],
+      "n_components": 4,
+      "intervention_success": 0,
+      "intervention_total": 22,
+      "success_rate": 0.0,
+      "faithful_preserved": 14,
+      "faithful_total": 15,
+      "preservation_rate": 0.9333333333333333
+    },
+    "L20H7+L25H1+L25H0+L23H7+L6H1": {
+      "components": [
+        "L20H7",
+        "L25H1",
+        "L25H0",
+        "L23H7",
+        "L6H1"
+      ],
+      "n_components": 5,
+      "intervention_success": 0,
+      "intervention_total": 25,
+      "success_rate": 0.0,
+      "faithful_preserved": 14,
+      "faithful_total": 15,
+      "preservation_rate": 0.9333333333333333
+    }
+  },
+  "elapsed_seconds": 353.42703199386597
+}

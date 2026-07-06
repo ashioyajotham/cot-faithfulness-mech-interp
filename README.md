@@ -10,7 +10,7 @@ The long-term safety case: if models develop separable circuits for "produce a C
 |-------|-------------|--------|
 | **Phase 1** | GPT-2 Small baseline — circuit discovery, detection probe, dataset | **Complete** (`v1.0.0`) |
 | **Phase 2A** | Validate Phase 1 claims — probe selectivity, error analysis, bootstrap CI | **Complete** |
-| **Phase 2B** | Scale to Qwen2.5-1.5B and 7B — circuit discovery, dual-metric, intervention, MLP probes | **Complete** |
+| **Phase 2B** | Scale to Qwen 1.5B, Qwen 7B, Gemma 2 2B — circuit discovery, probes, intervention | **Complete** |
 
 ## Key Results
 
@@ -50,52 +50,43 @@ Phase 2A results are at `phase2/2a_validation/results/`.
 
 ### Phase 2B — Cross-Architecture & Cross-Scale Replication
 
-Full pipeline ran on Qwen2.5-1.5B-Instruct (Colab T4, 50 min) and Qwen2.5-7B-Instruct (Colab A100, 64 min).
+Full pipeline ran on Qwen2.5-1.5B-Instruct (T4, 50 min), Qwen2.5-7B-Instruct (A100, 64 min), and Gemma 2 2B (A100, 20 min).
 
-#### Three-Scale Comparison
+#### Four-Model Comparison
 
-| Finding | GPT-2 (124M) | Qwen 1.5B | Qwen 7B |
-|---------|:------------:|:---------:|:-------:|
-| Layer 0 attn is #1 layer | ✅ 0.721 | ✅ 1.023 | ✅ **0.944** |
-| Dual-metric divergence | L7H6 ≠ L0MLP | L20H9 ≠ L20H5 | **L23H12 ≠ L23H7** |
-| Distributed signal | Layer 8 > circuit | Layer 21 > circuit | **Layer 14 > circuit** |
-| Circuit probe AUC | 0.98 | 0.617 | **0.536** |
-| Selectivity | 0.110 ✅ | 0.069 ✅ | **0.037** ✅ |
-| Best intervention | N/A | 2.6% | **3.4%** |
-| Faithful preservation | N/A | 95.3% | **97.8–100%** |
-| Unfaithful ratio | ~50% | 60% | **69%** |
+| Finding | GPT-2 (124M) | Qwen 1.5B | Qwen 7B | **Gemma 2 2B** |
+|---------|:---:|:---:|:---:|:---:|
+| Top layer component | L0 attn (0.721) | L0 attn (1.023) | L0 attn (0.944) | **L20 attn (0.443)** |
+| Dual-metric divergence | L7H6 ≠ L0MLP | L20H9 ≠ L20H5 | L23H12 ≠ L23H7 | **L25H1 ≠ L20H7** |
+| Signal distribution | DISTRIBUTED | DISTRIBUTED | DISTRIBUTED | **LOCALIZED** |
+| Circuit probe AUC | 0.98 | 0.617 | 0.536 | **0.633** |
+| Selectivity | 0.110 | 0.069 | 0.037 | **0.154** |
+| Best intervention | N/A | 2.6% | 3.4% | **3.4%** |
+| Faithful preservation | N/A | 95.3% | 97.8–100% | **88–100%** |
+| Unfaithful ratio | ~50% | 60% | 69% | **62%** |
+| Valid rate | — | 41% | 62% | **17%** |
 
-#### Six Scaling Findings
+#### Key Findings (updated with Gemma)
 
-1. **Layer 0 attention is universal** — top layer component in all three models (the "input bottleneck")
-2. **Linear probes degrade monotonically** — AUC: 0.98 → 0.617 → 0.536 as models scale
-3. **Dual-metric divergence is universal** — top discriminative ≠ top causal in all three models
-4. **Shortcut circuits consolidate** — 7B concentrates ALL 15 top heads in Layer 23
-5. **Larger models are more unfaithful** — 69% unfaithful at 7B vs 60% at 1.5B
-6. **Faithful preservation improves with scale** — dual-circuit separation becomes cleaner
+1. **Dual-metric divergence is universal** — replicates in 4/4 models across two architecture families (GPT-2, Qwen, Gemma)
+2. **Layer 0 bottleneck is architecture-dependent** — #1 in global-attention models (GPT-2, Qwen), but **NOT** in Gemma 2 (which uses sliding window attention, so L0 can't attend to the full input; the bottleneck shifts to L20)
+3. **Linear probes degrade within architecture** — AUC: 0.98 → 0.617 → 0.536 (GPT-2 → Qwen scaling), but Gemma 2B bucks the trend (0.633) with highest selectivity (0.154)
+4. **Signal localisation is architecture-dependent** — distributed in GPT-2/Qwen, but **localized** in Gemma (circuit probe beats random layers)
+5. **Shortcut circuits consolidate differently** — Qwen 7B concentrates in L23; Gemma distributes across L6–L25
+6. **Larger models are more unfaithful** — within Qwen: 60% → 69%
 
-#### Probe Architecture Comparison (Steps G+H)
+#### Probe Architecture Comparison
 
-| Probe Type | 1.5B AUC | 7B AUC | Notes |
-|-----------|----------|--------|-------|
-| Circuit linear | 0.617 | 0.536 | Degrades with scale |
-| Circuit MLP | 0.532 | 0.527 | No non-linear gain |
-| Full-stream linear | **0.660** | 0.579 | Best at 1.5B |
-| Full-stream MLP | 0.561 | **0.616** | Best at 7B — non-linear encoding emerges |
+| Probe Type | Qwen 1.5B | Qwen 7B | Gemma 2B |
+|-----------|:---------:|:-------:|:--------:|
+| Circuit linear | 0.617 | 0.536 | **0.633** |
+| Circuit MLP | 0.532 | 0.527 | 0.570 |
+| Full-stream linear | **0.660** | 0.579 | **0.680** |
+| Full-stream MLP | 0.561 | **0.616** | 0.574 |
 
-**Key insight**: Full-stream MLP is the *only* probe that improves from 1.5B → 7B. The faithfulness signal becomes non-linearly distributed across the residual stream as models scale.
+**Gemma insight**: Full-stream linear is the best probe across all models. Signal localisation in Gemma makes circuit probes more effective than in Qwen at comparable scale.
 
-#### Intervention Detail (7B)
-
-| Ablation Set | Success Rate | Faithful Preserved |
-|--------------|-------------|-------------------|
-| L23H7 | 0.6% | 100% |
-| +L23H15 | 1.8% | 100% |
-| +L23H16 | 3.1% | 100% |
-| +L23H9 | 2.9% | 98.8% |
-| +L23H25 | **3.4%** | 97.8% |
-
-Phase 2B results are at `phase2/2b_scaling/results/qwen25-math-1.5b/` and `phase2/2b_scaling/results/qwen25-math-7b/`.
+Phase 2B results are at `phase2/2b_scaling/results/{qwen25-math-1.5b,qwen25-math-7b,gemma2-2b}/`.
 
 ## Method Overview
 
@@ -265,14 +256,15 @@ python phase2/2b_scaling/experiments/intervention.py --model qwen25-math-1.5b
 | **RQ2** | What explains probe false negatives? | **Irreducible noise** — 51 FNs with no carry overrepresentation or magnitude clustering. |
 | **RQ3** | Is L7H6's dominance as top shortcut head robust? | **As discriminator, yes** (highest probe coef). **As causal driver, no** — L0MLP dominates restoration scores. These measure different things. |
 
-### Phase 2B — Scaling (complete)
+### Phase 2B — Scaling & Cross-Architecture (complete)
 
 | RQ | Question | Answer |
 |----|----------|--------|
-| **RQ4** | Does the same circuit structure emerge across scales? | **Yes** — Layer 0 attention is top layer in all three models. Dual-metric divergence replicates across GPT-2, 1.5B, and 7B. Circuit head positions differ but structural patterns are universal. |
-| **RQ5** | Does ablating shortcut heads change model behaviour? | **Yes, weakly** — max 3.4% at 7B (6/174 unfaithful pairs flip). Shortcut circuit is highly distributed; at 7B, all top heads are in Layer 23 but ablating 5/28 only shifts 3.4%. |
-| **RQ6** | Is faithful reasoning preserved under shortcut ablation? | **Yes, increasingly so** — 97.8–100% at 7B (up from 95.3% at 1.5B). Dual-circuit separation is cleaner at scale. |
-| **RQ7** | Do linear probes scale? | **No** — AUC degrades monotonically: 0.98 → 0.617 → 0.536. Full-stream MLP probe is the only method that improves at 7B (AUC 0.616). |
+| **RQ4** | Does the same circuit structure emerge across architectures? | **Partially** — Dual-metric divergence replicates in 4/4 models. But Layer 0 bottleneck is architecture-dependent: #1 in global-attention models (GPT-2, Qwen), NOT in Gemma 2 (sliding window attention shifts bottleneck to L20). |
+| **RQ5** | Does ablating shortcut heads change model behaviour? | **Yes, weakly** — max 3.4% across both Qwen 7B and Gemma 2B. Shortcut is distributed regardless of architecture. |
+| **RQ6** | Is faithful reasoning preserved under shortcut ablation? | **Yes** — 88–100% across all models. Dual-circuit separation holds cross-architecture. |
+| **RQ7** | Do linear probes scale? | **Within-family: no** (Qwen AUC: 0.617 → 0.536). **Cross-architecture: architecture matters more than scale** — Gemma 2B (0.633) beats Qwen 7B (0.536) despite being smaller. |
+| **RQ8** | Is the faithfulness signal localized or distributed? | **Architecture-dependent** — distributed in GPT-2/Qwen, but **localized** in Gemma 2B (circuit beats random layers, gap=+0.071). |
 
 ## The `shared/` Library
 
